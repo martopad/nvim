@@ -13,7 +13,8 @@ return {
             require("toggleterm").setup{
                 open_mapping = [[<c-\>]],
                 autochdir = true,
-                direction = horizontal
+                direction = horizontal,
+                size = 25,
             }
         end
     }

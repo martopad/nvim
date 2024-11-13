@@ -1,4 +1,4 @@
-vim.cmd("set paste") -- prevent vim from modifying copy-pasted content
+vim.cmd("set nowrap")
 vim.cmd("set expandtab")
 vim.cmd("set tabstop=4")
 vim.cmd("set softtabstop=4")

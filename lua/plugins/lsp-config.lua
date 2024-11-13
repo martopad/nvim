@@ -9,7 +9,7 @@ return {
         "williamboman/mason-lspconfig.nvim",
         config = function()
             require("mason-lspconfig").setup({
-                ensure_installed = { "lua_ls", "ruff" }
+                ensure_installed = { "lua_ls", "basedpyright" }
             })
         end
     },
@@ -21,7 +21,7 @@ return {
             lspconfig.lua_ls.setup({
                 capabilities = capabilities
             })
-            lspconfig.ruff.setup({
+            lspconfig.basedpyright.setup({
                 capabilities = capabilities
 			})
 

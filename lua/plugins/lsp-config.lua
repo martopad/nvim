@@ -9,7 +9,11 @@ return {
         "williamboman/mason-lspconfig.nvim",
         config = function()
             require("mason-lspconfig").setup({
-                ensure_installed = { "lua_ls", "basedpyright" }
+                ensure_installed = {
+                    "lua_ls",
+                    "basedpyright",
+                    "rust_analyzer" -- system needs to have rust_analyzer, and rust-src installed
+                }
             })
         end
     },
@@ -22,6 +26,9 @@ return {
                 capabilities = capabilities
             })
             lspconfig.basedpyright.setup({
+                capabilities = capabilities
+			})
+            lspconfig.rust_analyzer.setup({
                 capabilities = capabilities
 			})
 

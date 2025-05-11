@@ -26,6 +26,7 @@ return {
             vim.lsp.enable({
                 'basedpyright', -- this need basedpyright in system
                 'lua_ls',
+                'ruff',
             })
             -- old config
             --[[ local capabilities = require("cmp_nvim_lsp").default_capabilities()

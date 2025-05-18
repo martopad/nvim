@@ -14,7 +14,7 @@ return {
                 open_mapping = [[<c-\>]],
                 autochdir = true,
                 direction = horizontal,
-                size = 25,
+                size = 20,
             }
         end
     }

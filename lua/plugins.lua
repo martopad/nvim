@@ -1,5 +1,7 @@
 -- ============================================================================
 -- Contains stuff about plugins-- sources, and configuration.
+-- It is configured this way to make sure that all "vim.pack.add" (imports)
+-- are located in one place for easier maintenance.
 -- ============================================================================
 
 -- Theme

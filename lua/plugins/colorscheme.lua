@@ -1,4 +1,4 @@
 -- ============================================================================
--- Configuration for colorscheme/theme
+-- Plugin Configuration: yorumi
 -- ============================================================================
 vim.cmd.colorscheme("yorumi")

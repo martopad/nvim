@@ -1,4 +1,7 @@
+-- ============================================================================
+-- Auto commands configuration.
 -- based on https://github.com/radleylewis/nvim-lite/blob/master/init.lua
+-- ============================================================================
 
 -- highlight yanked text
 vim.api.nvim_create_autocmd("TextYankPost", {

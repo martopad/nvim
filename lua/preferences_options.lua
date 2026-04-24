@@ -1,4 +1,7 @@
--- Based on https://github.com/radleylewis/nvim-lite/blob/master/init.lua
+-- ============================================================================
+-- General nvim options configuration.
+-- based on https://github.com/radleylewis/nvim-lite/blob/master/init.lua
+-- ============================================================================
 
 vim.opt.termguicolors = true
 vim.opt.number = true -- line number

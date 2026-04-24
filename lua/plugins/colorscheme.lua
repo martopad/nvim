@@ -1,8 +1,4 @@
 -- ============================================================================
--- main
+-- Configuration for colorscheme/theme
 -- ============================================================================
-require("preferences_autocmds")
-require("preferences_keymaps")
-require("preferences_options")
-
-require("plugins")
+vim.cmd.colorscheme("yorumi")

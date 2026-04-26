@@ -29,3 +29,10 @@ vim.pack.add({
     { src = "https://www.github.com/echasnovski/mini.nvim", name = "mini" },
 })
 require("plugins/mini")
+
+-- Git integrations
+vim.pack.add({
+    { src = "https://www.github.com/lewis6991/gitsigns.nvim", name = "gitsigns.nvim" }
+})
+require("plugins/git_integrations")
+require("plugins/git_integrations_keymaps")

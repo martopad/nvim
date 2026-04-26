@@ -36,3 +36,6 @@ vim.pack.add({
 })
 require("plugins/git_integrations")
 require("plugins/git_integrations_keymaps")
+
+-- Tree-sitter integrations
+require("plugins/tree_sitter")

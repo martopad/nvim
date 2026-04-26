@@ -20,6 +20,7 @@ require("plugins/status_line")
 -- Explorer View
 vim.pack.add({
     { src = "https://github.com/nvim-tree/nvim-tree.lua", name = "nvim-tree.lua" },
+    { src = "https://www.github.com/ibhagwan/fzf-lua", name = "fzf-lua"},
 })
 require("plugins/explorer_view")
 require("plugins/explorer_view_keymaps")

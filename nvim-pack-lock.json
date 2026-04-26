@@ -4,6 +4,10 @@
       "rev": "426dbebe06b5c69fd846ceb17b42e12f890aedf1",
       "src": "https://github.com/catppuccin/nvim"
     },
+    "fzf-lua": {
+      "rev": "33321eba594f530e23a6b8970ba0b5fd695c8bba",
+      "src": "https://www.github.com/ibhagwan/fzf-lua"
+    },
     "gitsigns.nvim": {
       "rev": "6d808f99bd63303646794406e270bd553ad7792e",
       "src": "https://www.github.com/lewis6991/gitsigns.nvim"

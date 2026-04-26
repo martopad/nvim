@@ -13,3 +13,4 @@ Requirements:
       - tree-sitter-lua
       - tree-sitter-markdown
       - tree-sitter-vim
+3. fzf for fzf-lua plugin

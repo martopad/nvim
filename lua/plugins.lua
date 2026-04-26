@@ -16,3 +16,10 @@ vim.pack.add({
     { src = "https://github.com/nvim-lualine/lualine.nvim", name = "lualine" },
 })
 require("plugins/status_line")
+
+-- Explorer_view
+vim.pack.add({
+    { src = "https://github.com/nvim-tree/nvim-tree.lua", name = "nvim-tree.lua" },
+})
+require("plugins/explorer_view")
+require("plugins/explorer_view_keymaps")

@@ -23,3 +23,9 @@ vim.pack.add({
 })
 require("plugins/explorer_view")
 require("plugins/explorer_view_keymaps")
+
+-- QOL nvim lua functions
+vim.pack.add({
+    { src = "https://www.github.com/echasnovski/mini.nvim", name = "mini" },
+})
+require("plugins/mini")

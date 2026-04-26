@@ -17,6 +17,10 @@ require("catppuccin").setup {
     integrations = {
         -- Just use base catpuccin theme instead of applying catpuccin's nvimtree specific one.
         nvimtree = false,
+        mini = {
+            enabled = true,
+            indentscope_color = "text",
+        },
     },
 }
 

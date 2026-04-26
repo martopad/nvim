@@ -1,5 +1,5 @@
 -- ============================================================================
--- To have an "explorer view" (directory tree) on the side. 
+-- To have an "explorer view" (directory tree) on the side.
 -- Keymap configuration: nvim-tree.lua
 -- ============================================================================
 

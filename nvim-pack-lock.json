@@ -4,6 +4,10 @@
       "rev": "426dbebe06b5c69fd846ceb17b42e12f890aedf1",
       "src": "https://github.com/catppuccin/nvim"
     },
+    "efmls-configs": {
+      "rev": "5dc52088c231f2721f545570fcb541b04802ce6b",
+      "src": "https://github.com/creativenull/efmls-configs-nvim"
+    },
     "fzf-lua": {
       "rev": "33321eba594f530e23a6b8970ba0b5fd695c8bba",
       "src": "https://www.github.com/ibhagwan/fzf-lua"

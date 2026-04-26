@@ -17,7 +17,7 @@ vim.pack.add({
 })
 require("plugins/status_line")
 
--- Explorer_view
+-- Explorer View
 vim.pack.add({
     { src = "https://github.com/nvim-tree/nvim-tree.lua", name = "nvim-tree.lua" },
 })

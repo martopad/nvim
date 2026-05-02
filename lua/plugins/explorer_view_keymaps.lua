@@ -8,7 +8,7 @@ vim.keymap.set("n", "<C-b>", function()
 	require("nvim-tree.api").tree.toggle()
 end, { desc = "Toggle NvimTree" })
 vim.keymap.set("n", "<leader>b", function()
-    require("nvim-tree.api").tree.open()
+	require("nvim-tree.api").tree.open()
 end, { desc = "Focus to NvimTree" })
 
 -- fzf-lua

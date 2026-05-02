@@ -13,23 +13,23 @@ local diagnostic_signs = {
 
 vim.diagnostic.config({
 	-- virtual_text = { prefix = "●", spacing = 4 },
-    -- I commented the above line in favor of the bottom one, and to remind my future self.
-    -- Before: Show issues count as "●" and text of the first issue on the line.
-    -- ```
-    -- some_code(with, issues)  ●● "problem foo found on this line"
-    -- ```
-    -- Now: Only show issues as ● indicate to the user that there is/are issue/s on a line.
-    -- ```
-    -- some_code(with, issues)  ●●
-    -- ```
-    -- Why: To stop cluttering the file with diagnostics. There are shortcuts if the user
-    --      wants to actually look at what the issues are.
-    virtual_text = {
-        format = function(diagnostic)
-          return ""
-        end,
-        prefix = '●',
-    },
+	-- I commented the above line in favor of the bottom one, and to remind my future self.
+	-- Before: Show issues count as "●" and text of the first issue on the line.
+	-- ```
+	-- some_code(with, issues)  ●● "problem foo found on this line"
+	-- ```
+	-- Now: Only show issues as ● indicate to the user that there is/are issue/s on a line.
+	-- ```
+	-- some_code(with, issues)  ●●
+	-- ```
+	-- Why: To stop cluttering the file with diagnostics. There are shortcuts if the user
+	--      wants to actually look at what the issues are.
+	virtual_text = {
+		format = function(diagnostic)
+			return ""
+		end,
+		prefix = "●",
+	},
 	signs = {
 		text = {
 			[vim.diagnostic.severity.ERROR] = diagnostic_signs.Error,

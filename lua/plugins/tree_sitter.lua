@@ -13,7 +13,7 @@
 -- ============================================================================
 
 -- Installed via dev-libs/tree-sitter-python
-vim.treesitter.language.add('python', { path = "/usr/lib64/libtree-sitter-python.so" })
+vim.treesitter.language.add("python", { path = "/usr/lib64/libtree-sitter-python.so" })
 
 -- Installed via dev-libs/tree-sitter-rust
-vim.treesitter.language.add('rust', { path = "/usr/lib64/libtree-sitter-rust.so" })
+vim.treesitter.language.add("rust", { path = "/usr/lib64/libtree-sitter-rust.so" })

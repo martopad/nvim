@@ -37,6 +37,10 @@
       "rev": "0c2823e0418f3d9230ff8b201c976e84de1cb401",
       "src": "https://github.com/mason-org/mason-lspconfig.nvim"
     },
+    "mason-tool-installer": {
+      "rev": "443f1ef8b5e6bf47045cb2217b6f748a223cf7dc",
+      "src": "https://github.com/WhoIsSethDaniel/mason-tool-installer.nvim"
+    },
     "mini": {
       "rev": "be81509b7160aa02264a59789164a2e1c4a6750a",
       "src": "https://www.github.com/echasnovski/mini.nvim"

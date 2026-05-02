@@ -51,7 +51,6 @@ vim.pack.add({
 require("plugins/lsp")
 require("plugins/lsp_keymaps")
 require("plugins/lsps")
-require("plugins/lsps_efm")
 
 -- autocomplete
 vim.pack.add({

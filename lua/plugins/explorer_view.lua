@@ -18,4 +18,4 @@ require("nvim-tree").setup({
 	},
 })
 
-require("fzf-lua").setup({})
+require("fzf-lua").setup()

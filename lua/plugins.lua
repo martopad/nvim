@@ -13,14 +13,14 @@ require("plugins/colorscheme")
 -- Status line
 vim.pack.add({
 	{ src = "https://github.com/nvim-tree/nvim-web-devicons", name = "nvim-web-devicons" },
-	{ src = "https://github.com/nvim-lualine/lualine.nvim", name = "lualine" },
+	{ src = "https://github.com/nvim-lualine/lualine.nvim",   name = "lualine" },
 })
 require("plugins/status_line")
 
 -- Explorer View
 vim.pack.add({
 	{ src = "https://github.com/nvim-tree/nvim-tree.lua", name = "nvim-tree.lua" },
-	{ src = "https://www.github.com/ibhagwan/fzf-lua", name = "fzf-lua" },
+	{ src = "https://www.github.com/ibhagwan/fzf-lua",    name = "fzf-lua" },
 })
 require("plugins/explorer_view")
 require("plugins/explorer_view_keymaps")
@@ -43,14 +43,14 @@ require("plugins/tree_sitter")
 
 -- Package Management
 vim.pack.add({
-	{ src = "https://github.com/mason-org/mason.nvim", name = "mason" },
+	{ src = "https://github.com/mason-org/mason.nvim",                      name = "mason" },
 	{ src = "https://github.com/WhoIsSethDaniel/mason-tool-installer.nvim", name = "mason-tool-installer" },
 })
 
 -- LSP
 vim.pack.add({
-	{ src = "https://github.com/mason-org/mason-lspconfig.nvim", name = "mason-lspconfig" },
-	{ src = "https://www.github.com/neovim/nvim-lspconfig", name = "nvim-lspconfig" },
+	{ src = "https://github.com/mason-org/mason-lspconfig.nvim",  name = "mason-lspconfig" },
+	{ src = "https://www.github.com/neovim/nvim-lspconfig",       name = "nvim-lspconfig" },
 	{ src = "https://github.com/creativenull/efmls-configs-nvim", name = "efmls-configs" },
 })
 require("plugins/lsp")

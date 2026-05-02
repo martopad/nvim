@@ -8,27 +8,25 @@
 
 -- Append to this variable if you have formatters or linters that will be used by efm.
 local fmts_linters_non_ls = {
-	"stylua",
 	"luacheck",
 }
 
 -- Don't forget to sync the tools above with the neccessary efmls-configs below.
 local fmt_ruff = require("efmls-configs.formatters.ruff")
 local fmt_ruff_sort = require("efmls-configs.formatters.ruff_sort")
-local fmt_stylua = require("efmls-configs.formatters.stylua")
 
 local lint_ruff = require("efmls-configs.linters.ruff")
 local lint_luacheck = require("efmls-configs.linters.luacheck")
 
 local languages = {
 	python = { fmt_ruff, fmt_ruff_sort, lint_ruff },
-	lua = { lint_luacheck, fmt_stylua },
+	lua = { lint_luacheck },
 }
 
 -- Append to this variable if you want to add more language servers.
 local lang_servers_and_configs = {
 	{ "basedpyright", {} },
-	{ "ruff", {} },
+	{ "ruff",         {} },
 	{
 		"efm",
 		{
@@ -44,6 +42,7 @@ local lang_servers_and_configs = {
 		{
 			settings = {
 				Lua = {
+					format = { enable = true },
 					diagnostics = { globals = { "vim" }, enable = true },
 					telemetry = { enable = false },
 				},

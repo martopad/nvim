@@ -3,7 +3,7 @@
 -- based on https://github.com/radleylewis/nvim-lite/blob/master/init.lua
 -- ============================================================================
 
-vim.g.mapleader = " " -- space for leader
+vim.g.mapleader = " "      -- space for leader
 vim.g.maplocalleader = " " -- space for localleader
 
 -- better movement in wrapped text

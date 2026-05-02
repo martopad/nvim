@@ -10,9 +10,9 @@ require("nvim-tree").setup({
 	filters = {
 		dotfiles = false,
 	},
-    git = {
-        ignore = false,
-    },
+	git = {
+		ignore = false,
+	},
 	renderer = {
 		group_empty = true,
 	},

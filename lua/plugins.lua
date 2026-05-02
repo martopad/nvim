@@ -52,3 +52,10 @@ require("plugins/lsp")
 require("plugins/lsp_keymaps")
 require("plugins/lsps")
 require("plugins/lsps_efm")
+
+-- autocomplete
+vim.pack.add({
+    { src = "https://github.com/saghen/blink.cmp", name = "blink.cmp", version = vim.version.range("1.*")},
+    { src = "https://github.com/L3MON4D3/LuaSnip", name = "luasnip" },
+})
+require("plugins/autocomplete_keymaps")

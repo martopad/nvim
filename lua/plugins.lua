@@ -63,3 +63,9 @@ vim.pack.add({
 	{ src = "https://github.com/L3MON4D3/LuaSnip", name = "luasnip" },
 })
 require("plugins/autocomplete_keymaps")
+
+-- Terminals
+vim.pack.add({
+	{ src = "https://github.com/akinsho/toggleterm.nvim", name = "toggleterm" },
+})
+require("plugins/terminals_keymaps")

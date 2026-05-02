@@ -62,18 +62,50 @@ local function lsp_on_attach(ev)
 		require("fzf-lua").lsp_implementations()
 	end, opts)
 
-	if client:supports_method("textDocument/codeAction", bufnr) then
-		vim.keymap.set("n", "<leader>oi", function()
-			vim.lsp.buf.code_action({
-				context = { only = { "source.organizeImports" }, diagnostics = {} },
-				apply = true,
-				bufnr = bufnr,
-			})
-			vim.defer_fn(function()
-				vim.lsp.buf.format({ bufnr = bufnr })
-			end, 50)
-		end, opts)
-	end
+	vim.keymap.set("n", "<leader>fm", function()
+		local ns_id = vim.api.nvim_create_namespace("lsp_format_highlight")
+
+		-- 1. Snapshot the text before formatting
+		local old_lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+		local old_text = table.concat(old_lines, "\n")
+
+		-- 2. Execute formatting (must be sync to compare immediately)
+		vim.lsp.buf.format({ bufnr = bufnr, async = false })
+
+		-- 3. Snapshot the text after formatting
+		local new_lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+		local new_text = table.concat(new_lines, "\n")
+		-- 4. Use vim.diff to find changed hunks
+		-- 'on_hunk' gives us: start_old, count_old, start_new, count_new
+		vim.diff(old_text, new_text, {
+			on_hunk = function(_, _, start_new, count_new)
+				-- vim.hl.range is the high-level way to apply highlights to a range
+				-- Arguments: bufnr, ns_id, hl_group, start_pos, end_pos, [opts]
+				local row_start = start_new - 1
+				local row_end = start_new + math.max(count_new, 1) - 1
+
+				vim.hl.range(
+					bufnr,
+					ns_id,
+					"Visual", -- This provides that subtle "yank" feel
+					{ row_start, 0 },
+					{ row_end, 0 },
+					{
+						inclusive = true,
+						priority = 1000
+					}
+				)
+			end
+		})
+
+		-- 5. Clear highlights after 200ms
+		vim.defer_fn(function()
+			if vim.api.nvim_buf_is_valid(bufnr) then
+				vim.api.nvim_buf_clear_namespace(bufnr, ns_id, 0, -1)
+			end
+		end, 200)
+		vim.notify(client.name .. " performed formatting on current buffer.")
+	end, opts)
 end
 
 vim.api.nvim_create_autocmd("LspAttach", { group = augroup, callback = lsp_on_attach })

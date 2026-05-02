@@ -17,6 +17,7 @@ vim.opt.softtabstop = 4    -- soft tab stop not tabs on tab/backspace
 vim.opt.smartindent = true -- smart auto-indent
 vim.opt.autoindent = true  -- copy indent from current line
 vim.opt.expandtab = false  -- retain tabs by default
+vim.opt.list = true        -- render whitespace characters using different characters (like tabs)
 
 -- vim.opt.ignorecase = true -- case insensitive search
 -- vim.opt.smartcase = true -- case sensitive if uppercase in string

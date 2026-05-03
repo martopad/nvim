@@ -12,12 +12,30 @@ vim.keymap.set("n", "<leader>b", function()
 end, { desc = "Focus to NvimTree" })
 
 -- fzf-lua
-vim.keymap.set("n", "<leader>ff", function()
-	require("fzf-lua").files()
-end, { desc = "FZF Files" })
-vim.keymap.set("n", "<leader>fg", function()
-	require("fzf-lua").live_grep()
-end, { desc = "FZF Live Grep" })
+vim.keymap.set('n', '<leader>ff', function()
+	vim.ui.input({
+		prompt = 'FZF files in directory: ',
+		default = vim.fn.getcwd() .. '/',
+		completion = 'dir'
+	}, function(input)
+		-- If the user didn't cancel (input is nil if Esc is pressed)
+		if input then
+			require("fzf-lua").live_grep({ cwd = input })
+		end
+	end)
+end, { desc = "Fzf files in specified directory (cwd autocomple)" })
+vim.keymap.set('n', '<leader>fg', function()
+	vim.ui.input({
+		prompt = 'Live grep in directory:',
+		default = vim.fn.getcwd() .. '/',
+		completion = 'dir'
+	}, function(input)
+		-- If the user didn't cancel (input is nil if Esc is pressed)
+		if input then
+			require("fzf-lua").live_grep({ cwd = input })
+		end
+	end)
+end, { desc = "Fzf files in specified directory (cwd autocomple)" })
 vim.keymap.set("n", "<leader>fb", function()
 	require("fzf-lua").buffers()
 end, { desc = "FZF Buffers" })

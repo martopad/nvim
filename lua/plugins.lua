@@ -75,3 +75,11 @@ vim.pack.add({
 })
 require("plugins/terminals_keymaps")
 require("plugins/terminals_custom")
+
+-- Remote Development
+vim.pack.add({
+	{ src = "https://www.github.com/nvim-lua/plenary.nvim",   name = "plenary" },
+	{ src = "https://github.com/amitds1997/remote-nvim.nvim", name = "remote-nvim" },
+	{ src = "https://github.com/MunifTanjim/nui.nvim",        name = "nui" },
+})
+require("plugins/remote_development")

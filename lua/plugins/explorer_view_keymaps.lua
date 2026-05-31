@@ -3,6 +3,17 @@
 -- Keymap configuration: nvim-tree.lua, fzf-lua
 -- ============================================================================
 
+local function open_nvim_tree(data)
+	-- buffer is a real file on the disk
+	local real_file = vim.fn.filereadable(data.file) == 1
+
+	if not real_file then
+		return
+	end
+
+	require("nvim-tree.api").tree.open({ focus = true, find_file = true, path = data.file })
+end
+
 -- nvim-tree.lua
 vim.keymap.set("n", "<C-b>", function()
 	require("nvim-tree.api").tree.toggle()
@@ -10,6 +21,12 @@ end, { desc = "Toggle NvimTree" })
 vim.keymap.set("n", "<leader>b", function()
 	require("nvim-tree.api").tree.open()
 end, { desc = "Focus to NvimTree" })
+vim.keymap.set("n", "<leader>bf", function()
+	-- Get the full path of the current buffer's file
+	local current_file_path = vim.fn.expand('%:p')
+
+	open_nvim_tree({ file = current_file_path })
+end, { desc = "Focus to NvimTree with respect to opened file" })
 
 -- fzf-lua
 vim.keymap.set('n', '<leader>ff', function()

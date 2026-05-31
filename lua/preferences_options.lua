@@ -11,12 +11,13 @@ vim.opt.wrap = false       -- do not wrap lines by default
 vim.opt.scrolloff = 10     -- keep 10 lines above/below cursor
 vim.opt.sidescrolloff = 10 -- keep 10 lines to left/right of cursor
 
+vim.opt.fixeol = false     -- disable "No newline at end of right file" suddenly on diffs
 vim.opt.tabstop = 4        -- tabwidth
 vim.opt.shiftwidth = 4     -- indent width
 vim.opt.softtabstop = 4    -- soft tab stop not tabs on tab/backspace
 vim.opt.smartindent = true -- smart auto-indent
 vim.opt.autoindent = true  -- copy indent from current line
-vim.opt.expandtab = false  -- retain tabs by default
+vim.opt.expandtab = true   -- insert spaces when using tab button (Note: CTRCL-V<Tab> to insert a real tab.)
 vim.opt.list = true        -- render whitespace characters using different characters (like tabs)
 
 -- vim.opt.ignorecase = true -- case insensitive search

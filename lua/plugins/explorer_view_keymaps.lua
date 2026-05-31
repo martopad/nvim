@@ -20,7 +20,7 @@ vim.keymap.set('n', '<leader>ff', function()
 	}, function(input)
 		-- If the user didn't cancel (input is nil if Esc is pressed)
 		if input then
-			require("fzf-lua").live_grep({ cwd = input })
+			require("fzf-lua").files({ cwd = input })
 		end
 	end)
 end, { desc = "Fzf files in specified directory (cwd autocomple)" })

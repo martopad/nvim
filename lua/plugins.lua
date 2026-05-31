@@ -22,6 +22,7 @@ vim.pack.add({
 	{ src = "https://github.com/nvim-tree/nvim-tree.lua",       name = "nvim-tree.lua" },
 	{ src = "https://www.github.com/nvim-lua/plenary.nvim",     name = "plenary" },
 	{ src = "https://github.com/nvim-telescope/telescope.nvim", name = "telescope" },
+
 })
 require("plugins/explorer_view")
 require("plugins/explorer_view_keymaps")
@@ -39,7 +40,10 @@ vim.pack.add({
 require("plugins/git_integrations")
 require("plugins/git_integrations_keymaps")
 
--- Tree-sitter integrations
+-- Tree-sitter and Tree-sitter package management integrations
+vim.pack.add {
+	{ src = "https://github.com/romus204/tree-sitter-manager.nvim", name = "tree-sitter-manager" }
+}
 require("plugins/tree_sitter")
 
 -- Package Management

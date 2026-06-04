@@ -43,9 +43,9 @@ vim.opt.fillchars = { eob = " " }                 -- hide "~" on empty lines
 -- Setup persistent modification hitory for modified files.
 local undodir = vim.fn.expand("~/.vim/undodir")
 if
-	vim.fn.isdirectory(undodir) == 0 -- create undodir if nonexistent
+    vim.fn.isdirectory(undodir) == 0 -- create undodir if nonexistent
 then
-	vim.fn.mkdir(undodir, "p")
+  vim.fn.mkdir(undodir, "p")
 end
 vim.opt.backup = false                  -- do not create a backup file
 vim.opt.writebackup = false             -- do not write to a backup file

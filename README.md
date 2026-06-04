@@ -8,6 +8,7 @@ Requirements:
     - To make the setup more portable, I now use a tree-sitter grammar manager so I do not
       have to worry about installing each dialect when I use a different machine
 3. luarocks
+    - jsregexp (for luasnip-- bootstrapping in code)
 
 Quick note on my remote machine at work:
 1. The following packages are manually downloaded and installed

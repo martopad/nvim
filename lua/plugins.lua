@@ -4,12 +4,6 @@
 -- are located in one place for easier maintenance.
 -- ============================================================================
 
--- Theme
-vim.pack.add({
-	{ src = "https://github.com/catppuccin/nvim", name = "catppuccin" },
-})
-require("plugins/colorscheme")
-
 -- Status line
 vim.pack.add({
 	{ src = "https://github.com/nvim-tree/nvim-web-devicons", name = "nvim-web-devicons" },

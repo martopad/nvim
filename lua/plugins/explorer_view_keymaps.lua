@@ -66,3 +66,22 @@ end, { desc = "Telescope Diagnostics Document" })
 vim.keymap.set("n", "<leader>fX", function()
 	require("telescope.builtin").diagnostics()
 end, { desc = "Telescope Diagnostics Workspace" })
+vim.keymap.set("n", "<leader>fp", function()
+  local actions = require("telescope.actions")
+  local action_state = require("telescope.actions.state")
+  local builtin = require("telescope.builtin")
+
+  builtin.find_files({
+    attach_mappings = function(prompt_bufnr, map)
+      actions.select_default:replace(function()
+        local entry = action_state.get_selected_entry()
+        actions.close(prompt_bufnr)
+
+        local path = entry.path or entry.filename or entry.value
+        vim.fn.setreg("+", path)
+        print("Copied: " .. path)
+      end)
+      return true
+    end,
+  })
+end, { desc = "Find file and copy path" })

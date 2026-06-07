@@ -4,13 +4,6 @@
 -- are located in one place for easier maintenance.
 -- ============================================================================
 
--- Terminals
-vim.pack.add({
-	{ src = "https://github.com/akinsho/toggleterm.nvim", name = "toggleterm" },
-})
-require("plugins/terminals_keymaps")
-require("plugins/terminals_custom")
-
 -- Remote Development
 vim.pack.add({
 	{ src = "https://www.github.com/nvim-lua/plenary.nvim",   name = "plenary" },

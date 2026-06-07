@@ -6,11 +6,6 @@
 
 
 
--- QOL nvim lua functions
-vim.pack.add({
-	{ src = "https://www.github.com/echasnovski/mini.nvim", name = "mini" },
-})
-require("plugins/mini")
 
 -- Git integrations
 vim.pack.add({

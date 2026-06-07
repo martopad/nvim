@@ -7,13 +7,6 @@
 
 
 
--- Git integrations
-vim.pack.add({
-	{ src = "https://www.github.com/lewis6991/gitsigns.nvim", name = "gitsigns.nvim" },
-})
-require("plugins/git_integrations")
-require("plugins/git_integrations_keymaps")
-
 -- Tree-sitter and Tree-sitter package management integrations
 vim.pack.add {
 	{ src = "https://github.com/romus204/tree-sitter-manager.nvim", name = "tree-sitter-manager" }

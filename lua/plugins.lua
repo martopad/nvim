@@ -4,15 +4,6 @@
 -- are located in one place for easier maintenance.
 -- ============================================================================
 
-
-
-
--- Tree-sitter and Tree-sitter package management integrations
-vim.pack.add {
-	{ src = "https://github.com/romus204/tree-sitter-manager.nvim", name = "tree-sitter-manager" }
-}
-require("plugins/tree_sitter")
-
 -- autocomplete
 vim.pack.add({
 	{ src = "https://github.com/saghen/blink.cmp", name = "blink.cmp", version = vim.version.range("1.*") },

@@ -4,13 +4,6 @@
 -- are located in one place for easier maintenance.
 -- ============================================================================
 
--- autocomplete
-vim.pack.add({
-	{ src = "https://github.com/saghen/blink.cmp", name = "blink.cmp", version = vim.version.range("1.*") },
-	{ src = "https://github.com/L3MON4D3/LuaSnip", name = "luasnip" },
-})
-require("plugins/autocomplete_keymaps")
-
 -- Terminals
 vim.pack.add({
 	{ src = "https://github.com/akinsho/toggleterm.nvim", name = "toggleterm" },

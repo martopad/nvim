@@ -4,14 +4,7 @@
 -- are located in one place for easier maintenance.
 -- ============================================================================
 
--- Explorer View
-vim.pack.add({
-	{ src = "https://github.com/nvim-tree/nvim-tree.lua",       name = "nvim-tree.lua" },
-	{ src = "https://www.github.com/nvim-lua/plenary.nvim",     name = "plenary" },
-	{ src = "https://github.com/nvim-telescope/telescope.nvim", name = "telescope" },
-})
-require("plugins/explorer_view")
-require("plugins/explorer_view_keymaps")
+
 
 -- QOL nvim lua functions
 vim.pack.add({

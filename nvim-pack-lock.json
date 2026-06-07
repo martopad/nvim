@@ -5,10 +5,6 @@
       "src": "https://github.com/saghen/blink.cmp",
       "version": "1.0.0 - 2.0.0"
     },
-    "efmls-configs": {
-      "rev": "5dc52088c231f2721f545570fcb541b04802ce6b",
-      "src": "https://github.com/creativenull/efmls-configs-nvim"
-    },
     "fzf-lua": {
       "rev": "9b382a9afdb5ce91b66802d405991eb765e88d16",
       "src": "https://www.github.com/ibhagwan/fzf-lua"
@@ -21,25 +17,9 @@
       "rev": "a62e1083a3cfe8b6b206e7d3d33a51091df25357",
       "src": "https://github.com/L3MON4D3/LuaSnip"
     },
-    "mason": {
-      "rev": "cb8445f8ce85d957416c106b780efd51c6298f89",
-      "src": "https://github.com/mason-org/mason.nvim"
-    },
-    "mason-lspconfig": {
-      "rev": "0c2823e0418f3d9230ff8b201c976e84de1cb401",
-      "src": "https://github.com/mason-org/mason-lspconfig.nvim"
-    },
-    "mason-tool-installer": {
-      "rev": "443f1ef8b5e6bf47045cb2217b6f748a223cf7dc",
-      "src": "https://github.com/WhoIsSethDaniel/mason-tool-installer.nvim"
-    },
     "mini": {
       "rev": "0f339bf5c93f392dc5d2417d47d7b9edc5f96fe8",
       "src": "https://www.github.com/echasnovski/mini.nvim"
-    },
-    "nvim-lspconfig": {
-      "rev": "31026a13eefb20681124706a79fc1df6bf11ab27",
-      "src": "https://www.github.com/neovim/nvim-lspconfig"
     },
     "nvim-tree.lua": {
       "rev": "f9bfc0059eca24546b69a7006110463da4808f8f",

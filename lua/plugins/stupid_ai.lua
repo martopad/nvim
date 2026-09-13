@@ -91,8 +91,7 @@ return {
             agent = "cursor",
             agents = {
               cursor = {
-                cmd = "cursor-agent",
-                args = { "--model", "gpt-5.5-extra-high" },
+                cmd = "agent",
                 description = "Cursor cli",
                 provider = "terminal",
               },

@@ -99,16 +99,92 @@ local function apply_diff_highlights(win, side)
   end)
 end
 
-local function close_maps(bufs, wins)
-  local function close()
-    for _, win in ipairs(wins) do
+local function close_diff_windows(wins)
+  for _, win in ipairs(wins) do
+    if vim.api.nvim_win_is_valid(win) then
       pcall(vim.api.nvim_win_close, win, true)
     end
+  end
+end
+
+local function close_maps(bufs, wins)
+  local function close()
+    close_diff_windows(wins)
   end
 
   for _, buf in ipairs(bufs) do
     vim.keymap.set("n", "q", close, { buffer = buf, nowait = true, desc = "Close diff" })
     vim.keymap.set("n", "<Esc>", close, { buffer = buf, nowait = true, desc = "Close diff" })
+  end
+end
+
+---@class GitFloats.ReviewSession
+---@field root string
+---@field base string
+---@field files string[] Relative paths.
+---@field index integer
+---@field kind? "working_tree"|"commit"
+---@field commit? string
+---@field parent? string Parent revision for commit review. Nil for initial commits.
+
+local function git_blob_lines(root, rev, rel)
+  local ref = rev == ":" and (":" .. rel) or (rev .. ":" .. rel)
+  local lines = vim.fn.systemlist({ "git", "-C", root, "--no-pager", "show", ref })
+  if vim.v.shell_error ~= 0 then
+    return {}
+  end
+  return lines
+end
+
+local function git_short_rev(root, rev)
+  if rev == ":" then
+    return "index"
+  end
+  return vim.fn.systemlist({ "git", "-C", root, "rev-parse", "--short", rev })[1] or rev
+end
+
+local function commit_parent(root, commit)
+  local parent = vim.fn.systemlist({ "git", "-C", root, "rev-parse", "--verify", commit .. "^" })
+  if vim.v.shell_error ~= 0 then
+    return nil
+  end
+  return parent[1]
+end
+
+local function commit_files(root, commit)
+  local files = vim.fn.systemlist({
+    "git",
+    "-C",
+    root,
+    "diff-tree",
+    "--no-commit-id",
+    "--name-only",
+    "-r",
+    commit,
+  })
+  if vim.v.shell_error ~= 0 then
+    return nil, "git diff-tree failed:\n" .. table.concat(files, "\n")
+  end
+  return files
+end
+
+local function file_nav_maps(session, wins, bufs)
+  local function goto_file(delta)
+    local next_index = session.index + delta
+    if next_index < 1 or next_index > #session.files then
+      return vim.notify("No more changed files", vim.log.levels.INFO)
+    end
+    close_diff_windows(wins)
+    M.side_by_side({ session = vim.tbl_extend("force", session, { index = next_index }) })
+  end
+
+  for _, buf in ipairs(bufs) do
+    vim.keymap.set("n", "]f", function()
+      goto_file(1)
+    end, { buffer = buf, desc = "Next changed file" })
+    vim.keymap.set("n", "[f", function()
+      goto_file(-1)
+    end, { buffer = buf, desc = "Previous changed file" })
   end
 end
 
@@ -132,10 +208,10 @@ local function pane_maps(left_win, right_win, left_buf, right_buf)
   for _, buf in ipairs({ left_buf, right_buf }) do
     vim.keymap.set("n", "<C-h>", function()
       focus(left_win)
-    end, { buffer = buf, desc = "Diff pane: HEAD" })
+    end, { buffer = buf, desc = "Diff pane: left" })
     vim.keymap.set("n", "<C-l>", function()
       focus(right_win)
-    end, { buffer = buf, desc = "Diff pane: working tree" })
+    end, { buffer = buf, desc = "Diff pane: right" })
     vim.keymap.set("n", "<Tab>", cycle, { buffer = buf, desc = "Cycle diff panes" })
     vim.keymap.set("n", "<C-w>w", cycle, { buffer = buf, desc = "Cycle diff panes" })
   end
@@ -216,17 +292,33 @@ function M.unified(opts)
   close_maps({ buf }, { win })
 end
 
----Show the current file in a side-by-side vimdiff inside floating windows.
----@param base? string Revision to compare against. Defaults to HEAD.
-function M.side_by_side(base)
-  base = base or "HEAD"
+---@class GitFloats.SideBySideOpts
+---@field base? string Revision to compare against. Defaults to HEAD. Use ":" for the index (unstaged).
+---@field path? string Absolute file path. Defaults to the current buffer.
+---@field session? GitFloats.ReviewSession Multi-file review session state.
 
-  local root = git_root()
-  if not root then
-    return vim.notify("Not a git repository", vim.log.levels.WARN)
+---@class GitFloats.ReviewOpts
+---@field scope? "unstaged"|"head"|"staged" Which changes to review. Default: unstaged.
+---@field base? string Optional revision for file listing (e.g. origin/main).
+
+local function changed_files(root, scope, base)
+  local cmd = { "git", "-C", root, "diff", "--name-only" }
+  if scope == "staged" then
+    table.insert(cmd, "--cached")
+  elseif scope == "head" then
+    table.insert(cmd, "HEAD")
+  elseif base then
+    table.insert(cmd, diff_range(base))
   end
+  local files = vim.fn.systemlist(cmd)
+  if vim.v.shell_error ~= 0 then
+    return nil, "git diff failed:\n" .. table.concat(files, "\n")
+  end
+  return files
+end
 
-  local rel = vim.fn.systemlist({
+local function review_index_for_current(files, root)
+  local current = vim.fn.systemlist({
     "git",
     "-C",
     root,
@@ -234,18 +326,179 @@ function M.side_by_side(base)
     "--full-name",
     vim.fn.expand("%:p"),
   })[1]
+  if not current then
+    return 1
+  end
+  for index, file in ipairs(files) do
+    if file == current then
+      return index
+    end
+  end
+  return 1
+end
+
+---Open a multi-file side-by-side review. Use ]f and [f to move between files.
+---@param opts? GitFloats.ReviewOpts
+function M.review_side_by_side(opts)
+  opts = opts or {}
+  local scope = opts.scope or "unstaged"
+
+  local root = git_root()
+  if not root then
+    return vim.notify("Not a git repository", vim.log.levels.WARN)
+  end
+
+  local files, err = changed_files(root, scope, opts.base)
+  if not files then
+    return vim.notify(err, vim.log.levels.ERROR)
+  end
+  if #files == 0 then
+    return vim.notify("No changed files to review", vim.log.levels.INFO)
+  end
+
+  local base = scope == "unstaged" and ":" or "HEAD"
+
+  M.side_by_side({
+    session = {
+      root = root,
+      base = base,
+      kind = "working_tree",
+      files = files,
+      index = review_index_for_current(files, root),
+    },
+  })
+end
+
+---Open a side-by-side review of all files changed in a commit.
+---@param commit? string Commit SHA. Opens a picker when omitted.
+function M.review_commit(commit)
+  local root = git_root()
+  if not root then
+    return vim.notify("Not a git repository", vim.log.levels.WARN)
+  end
+
+  local function start_review(sha)
+    local files, err = commit_files(root, sha)
+    if not files then
+      return vim.notify(err, vim.log.levels.ERROR)
+    end
+    if #files == 0 then
+      return vim.notify("Commit has no file changes", vim.log.levels.INFO)
+    end
+
+    M.side_by_side({
+      session = {
+        root = root,
+        base = sha,
+        kind = "commit",
+        commit = sha,
+        parent = commit_parent(root, sha),
+        files = files,
+        index = review_index_for_current(files, root),
+      },
+    })
+  end
+
+  if commit then
+    return start_review(commit)
+  end
+
+  local actions = require("telescope.actions")
+  local action_state = require("telescope.actions.state")
+  require("telescope.builtin").git_commits({
+    attach_mappings = function(prompt_bufnr, map)
+      actions.select_default:replace(function()
+        local entry = action_state.get_selected_entry()
+        actions.close(prompt_bufnr)
+        start_review(entry.value)
+      end)
+      return true
+    end,
+  })
+end
+
+---Show a file in a side-by-side vimdiff inside floating windows.
+---@param opts? string|GitFloats.SideBySideOpts
+function M.side_by_side(opts)
+  if type(opts) == "string" then
+    opts = { base = opts }
+  end
+  opts = opts or {}
+  local base = opts.base or "HEAD"
+  local session = opts.session
+  local root = git_root()
+  if not root then
+    return vim.notify("Not a git repository", vim.log.levels.WARN)
+  end
+
+  local path = opts.path or vim.fn.expand("%:p")
+  local rel
+  local is_commit = session and session.kind == "commit"
+
+  if session then
+    rel = session.files[session.index]
+    path = session.root .. "/" .. rel
+    if not is_commit then
+      base = session.base
+    end
+  end
+
+  if path == "" then
+    return vim.notify("No file to diff", vim.log.levels.WARN)
+  end
+
+  if not rel and not is_commit then
+    rel = vim.fn.systemlist({
+      "git",
+      "-C",
+      root,
+      "ls-files",
+      "--full-name",
+      path,
+    })[1]
+  end
 
   if not rel or rel == "" then
     return vim.notify("File is not tracked by git", vim.log.levels.WARN)
   end
 
-  local old_lines = vim.fn.systemlist({ "git", "-C", root, "--no-pager", "show", base .. ":" .. rel })
-  if vim.v.shell_error ~= 0 then
-    return vim.notify("git show " .. base .. ":" .. rel .. " failed", vim.log.levels.ERROR)
+  if not is_commit and base == ":" then
+    vim.fn.system({ "git", "-C", root, "diff", "--quiet", "--", rel })
+    if vim.v.shell_error == 0 then
+      return vim.notify("No unstaged changes in " .. rel, vim.log.levels.INFO)
+    end
+  end
+
+  local old_lines
+  local current_lines
+  local left_label
+  local right_label
+  local right_modifiable = true
+
+  if is_commit then
+    left_label = session.parent and git_short_rev(root, session.parent) or "empty"
+    right_label = git_short_rev(root, session.commit)
+    old_lines = session.parent and git_blob_lines(root, session.parent, rel) or {}
+    current_lines = git_blob_lines(root, session.commit, rel)
+    right_modifiable = false
+  else
+    old_lines = git_blob_lines(root, base == ":" and ":" or base, rel)
+
+    if path == vim.fn.expand("%:p") then
+      current_lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+    else
+      current_lines = vim.fn.readfile(path)
+    end
+    left_label = base == ":" and "index" or base
+    right_label = "working tree"
   end
 
   local filetype = vim.bo.filetype
-  local current_lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+  if path ~= vim.fn.expand("%:p") then
+    filetype = vim.filetype.match({ filename = path }) or ""
+  end
+
+  local file_title = session and string.format("[%d/%d] ", session.index, #session.files) or ""
 
   local total_width = math.min(vim.o.columns - 6, 220)
   local height = math.min(vim.o.lines - 6, 45)
@@ -273,8 +526,18 @@ function M.side_by_side(base)
     return win, buf
   end
 
-  local left_win, left_buf = open_pane(old_lines, col, (" %s:%s "):format(base, rel), false)
-  local right_win, right_buf = open_pane(current_lines, col + pane_width + 2, " working tree ", true)
+  local left_win, left_buf = open_pane(
+    old_lines,
+    col,
+    (" %s%s:%s "):format(file_title, left_label, rel),
+    false
+  )
+  local right_win, right_buf = open_pane(
+    current_lines,
+    col + pane_width + 2,
+    (" %s%s "):format(file_title, right_label),
+    right_modifiable
+  )
 
   configure_diff_pane(left_win)
   configure_diff_pane(right_win)
@@ -290,6 +553,9 @@ function M.side_by_side(base)
 
   vim.api.nvim_set_current_win(right_win)
   pane_maps(left_win, right_win, left_buf, right_buf)
+  if session then
+    file_nav_maps(session, { left_win, right_win }, { left_buf, right_buf })
+  end
   close_maps({ left_buf, right_buf }, { left_win, right_win })
 end
 
@@ -348,6 +614,11 @@ function M.changed_vs_base(base)
       end,
     }),
   }):find()
+end
+
+---Start a multi-file unstaged side-by-side review at the first changed file.
+function M.browse_unstaged()
+  M.review_side_by_side({ scope = "unstaged" })
 end
 
 return M

@@ -84,5 +84,7 @@ vim.opt.wildmenu = true                              -- tab completion
 vim.opt.wildmode =
 "longest:full,full"                                  -- complete longest common match, full completion list, cycle through with Tab
 vim.opt.diffopt:append("linematch:60")               -- improve diff display
+vim.opt.diffopt:append("inline:word")                -- highlight exact word changes in vimdiff
+vim.opt.fillchars:append({ diff = "░" })             -- filler lines: block char, not dashes
 vim.opt.redrawtime = 10000                           -- increase neovim redraw tolerance
 vim.opt.maxmempattern = 20000                        -- increase max memory

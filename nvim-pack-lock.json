@@ -8,10 +8,6 @@
       "rev": "0303a7208dba448c459767486a38a6ec05c4216b",
       "src": "https://github.com/catppuccin/nvim"
     },
-    "codecompanion": {
-      "rev": "60d031862715a77b3655eac724e8926965e47b86",
-      "src": "https://www.github.com/olimorris/codecompanion.nvim"
-    },
     "copilot": {
       "rev": "1d457ad5f267b8ef855a6b8b3fe152403cb00947",
       "src": "https://github.com/zbirenbaum/copilot.lua"
@@ -53,8 +49,8 @@
       "src": "https://github.com/MunifTanjim/nui.nvim"
     },
     "nvim-lspconfig": {
-      "rev": "07dff35e7c95288861200b788ef32d6103f107f0",
-      "src": "https://www.github.com/neovim/nvim-lspconfig"
+      "rev": "07dff35e7c95288861200b78ef32d6103f107f0",
+      "src": "https://github.com/neovim/nvim-lspconfig"
     },
     "nvim-tree.lua": {
       "rev": "07f541fcaa4a5ae019598240362449ab7e9812b3",
@@ -66,7 +62,7 @@
     },
     "plenary": {
       "rev": "74b06c6c75e4eeb3108ec01852001636d85a932b",
-      "src": "https://www.github.com/nvim-lua/plenary.nvim"
+      "src": "https://github.com/nvim-lua/plenary.nvim"
     },
     "remote-nvim": {
       "rev": "9992c2fb8bf4f11aca2c8be8db286b506f92efcb",
@@ -84,5 +80,8 @@
       "rev": "bb66b815aff01e87b2e26be995116be8d2f91474",
       "src": "https://github.com/romus204/tree-sitter-manager.nvim"
     }
+  }
+}
+
   }
 }

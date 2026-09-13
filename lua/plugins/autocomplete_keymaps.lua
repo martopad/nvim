@@ -31,6 +31,16 @@ return {
       },
       sources = {
         default = { "lsp", "path", "buffer", "snippets" },
+        providers = {
+          buffer = {
+            opts = {
+              -- Skip buffer completion for large buffers (e.g. long
+              -- CodeCompanion chats), whose per-keystroke scanning/fuzzy
+              -- matching makes typing sluggish.
+              max_async_buffer_size = 50000,
+            },
+          },
+        },
       },
       snippets = { preset = "luasnip" },
     },

@@ -2,8 +2,7 @@
 -- Plugin Configuration: lualine, nvim-web-devicons
 -- ============================================================================
 
-require("lualine").setup({
-	options = {
-		theme = "auto",
-	},
-})
+return {
+    'nvim-lualine/lualine.nvim',
+    dependencies = { 'nvim-tree/nvim-web-devicons' }
+}

@@ -43,5 +43,8 @@
   "smear-cursor.nvim": { "branch": "main", "commit": "9e9378d6ee34bb3782e0e8c63d9ec8ca618b479b" },
   "telescope.nvim": { "branch": "master", "commit": "7d324792b7943e4aa16ad007212e6acc6f9fe335" },
   "toggleterm.nvim": { "branch": "main", "commit": "50ea089fc548917cc3cc16b46a8211833b9e3c7c" },
-  "tree-sitter-manager.nvim": { "branch": "main", "commit": "75fb910f9f02b07f65248369c437c3b168261421" }
+"tree-sitter-manager.nvim": { "branch": "main", "commit": "75fb910f9f02b07f65248369c437c3b168261421" }
+},
+"tree-sitter-manager.nvim": { "branch": "main", "commit": "75fb910f9f02b07f65248369c437c3b168261421" },
+  "vim-sneak": { "branch": "master", "commit": "feea86adcfbf8e6b5e71fdd5f4f5736fd8819fdb" }
 }

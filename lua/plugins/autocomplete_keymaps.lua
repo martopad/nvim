@@ -1,6 +1,5 @@
 -- ============================================================================
--- Configuration for autocomplete capablities and keymaps.
--- Plugin Configuration: blink.cmp
+-- Plugin Configuration: blink.cmp, LuaSnip
 -- ============================================================================
 
 return {
@@ -32,15 +31,9 @@ return {
       },
       sources = {
         default = { "lsp", "path", "buffer", "snippets" },
-        providers = {
-        },
       },
       snippets = { preset = "luasnip" },
     },
     opts_extend = { "sources.default" },
   }
-}
-
-vim.lsp.config["*"] = {
-	capabilities = require("blink.cmp").get_lsp_capabilities(),
 }

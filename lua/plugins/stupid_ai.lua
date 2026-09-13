@@ -59,10 +59,56 @@ return {
         mode = { "n", "v" },
         desc = "Toggle CodeCompanion Chat",
       },
+      {
+        -- Heavy sessions repaint poorly in the embedded terminal; resume them
+        -- in a native terminal (tmux window, or a configured emulator) instead.
+        "<leader>tr",
+        function()
+          local cwd = vim.fn.getcwd()
+          if vim.env.TMUX and vim.env.TMUX ~= "" then
+            vim.fn.jobstart(
+              { "tmux", "new-window", "-c", cwd, "-n", "cursor-agent", "agent", "--resume" },
+              { detach = true }
+            )
+            vim.notify("cursor-agent --resume opened in a new tmux window", vim.log.levels.INFO)
+            return
+          end
+          -- Fallback: a user-configured terminal emulator command prefix, e.g.
+          --   vim.g.codecompanion_external_terminal = { "wezterm", "start", "--" }
+          --   vim.g.codecompanion_external_terminal = { "kitty" }
+          local term = vim.g.codecompanion_external_terminal
+          if type(term) == "table" and #term > 0 then
+            local cmd = vim.deepcopy(term)
+            vim.list_extend(cmd, { "agent", "--resume" })
+            vim.fn.jobstart(cmd, { detach = true, cwd = cwd })
+            vim.notify("cursor-agent --resume opened in external terminal", vim.log.levels.INFO)
+            return
+          end
+          vim.notify(
+            "No external terminal available. Run inside tmux, or set "
+              .. "vim.g.codecompanion_external_terminal (e.g. { 'wezterm', 'start', '--' }).",
+            vim.log.levels.WARN
+          )
+        end,
+        mode = "n",
+        desc = "Resume cursor-agent (external terminal)",
+      },
     },
     config = function()
       local spinner = require("plugins.code-companion.spinner")
       spinner:init()
+
+      -- The CLI terminal replays huge transcripts on `--resume`; the default
+      -- scrollback (10000) trims mid-replay and desyncs the agent's TUI redraw,
+      -- causing the endless reload. Keep the full history for CLI terminals.
+      vim.api.nvim_create_autocmd("TermOpen", {
+        group = vim.api.nvim_create_augroup("codecompanion_cli_term", { clear = true }),
+        callback = function(args)
+          if vim.bo[args.buf].filetype == "codecompanion_cli" then
+            vim.bo[args.buf].scrollback = 100000
+          end
+        end,
+      })
 
       require("codecompanion").setup({
         opts = {
@@ -99,6 +145,22 @@ return {
           },
         },
         display = {
+          -- The CLI buffer is a terminal running a full-screen TUI. It would
+          -- otherwise inherit the chat window's markdown options (wrap/linebreak/
+          -- breakindent), which desync the agent's line math. Force terminal-safe
+          -- options instead.
+          cli = {
+            window = {
+              opts = {
+                wrap = false,
+                linebreak = false,
+                breakindent = false,
+                number = false,
+                relativenumber = false,
+                signcolumn = "no",
+              },
+            },
+          },
           diff = {
             enabled = true,
           },

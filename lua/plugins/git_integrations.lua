@@ -75,6 +75,34 @@ return {
         desc = "Float side-by-side vs HEAD",
       },
       {
+        "<leader>hgv",
+        function()
+          git_floats().side_by_side({ base = ":" })
+        end,
+        desc = "Float side-by-side unstaged (index)",
+      },
+      {
+        "<leader>hgU",
+        function()
+          git_floats().review_side_by_side({ scope = "unstaged" })
+        end,
+        desc = "Review unstaged files (side-by-side)",
+      },
+      {
+        "<leader>hgR",
+        function()
+          git_floats().review_side_by_side({ scope = "head" })
+        end,
+        desc = "Review all changes vs HEAD (side-by-side)",
+      },
+      {
+        "<leader>hgC",
+        function()
+          git_floats().review_commit()
+        end,
+        desc = "Review commit (side-by-side)",
+      },
+      {
         "<leader>hgd",
         function()
           git_floats().unified()

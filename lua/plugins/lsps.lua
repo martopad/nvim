@@ -32,8 +32,21 @@ return {
 
       -- Add here: Language servers and their configurations
       local lang_servers_and_configs = {
-        { "basedpyright", {} },
-        { "ruff",         {} },
+        {
+          "basedpyright",
+          {
+          settings = {
+            basedpyright = {
+              analysis = {
+                -- optional; strict already comes from pyproject.toml when root is found
+                autoSearchPaths = true,
+                useLibraryCodeForTypes = true,
+              },
+            },
+          },
+        }
+        },
+        { "ruff", {} },
         {
           "efm",
           {

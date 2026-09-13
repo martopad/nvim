@@ -41,7 +41,8 @@ return {
       require("toggleterm").setup(opts)
 
       vim.api.nvim_create_autocmd("TermOpen", {
-        pattern = "term://*toggleterm#*",
+        -- pattern = "term://*toggleterm#*",
+        pattern = "term://*",
         callback = function()
           local bufopts = { buffer = 0 }
           vim.keymap.set("t", "<esc>", [[<C-\><C-n>]], bufopts)

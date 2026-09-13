@@ -1,6 +1,10 @@
 -- ============================================================================
--- Plugin Configuration: gitsigns
+-- Plugin Configuration: gitsigns + floating git diff views
 -- ============================================================================
+
+local git_floats = function()
+  return require("config.git_floats")
+end
 
 return {
   {
@@ -10,16 +14,16 @@ return {
       {
         "]h",
         function()
-          require("gitsigns").next_hunk()
+          require("gitsigns").nav_hunk("next", { preview = true })
         end,
-        desc = "Next git hunk",
+        desc = "Next git hunk (preview)",
       },
       {
         "[h",
         function()
-          require("gitsigns").prev_hunk()
+          require("gitsigns").nav_hunk("prev", { preview = true })
         end,
-        desc = "Previous git hunk",
+        desc = "Previous git hunk (preview)",
       },
       {
         "<leader>hs",
@@ -43,6 +47,13 @@ return {
         desc = "Preview hunk",
       },
       {
+        "<leader>hi",
+        function()
+          require("gitsigns").preview_hunk_inline()
+        end,
+        desc = "Preview hunk inline",
+      },
+      {
         "<leader>hb",
         function()
           require("gitsigns").blame_line({ full = true })
@@ -59,14 +70,56 @@ return {
       {
         "<leader>hd",
         function()
-          require("gitsigns").diffthis()
+          git_floats().side_by_side("HEAD")
         end,
-        desc = "Diff this",
+        desc = "Float side-by-side vs HEAD",
+      },
+      {
+        "<leader>hgd",
+        function()
+          git_floats().unified()
+        end,
+        desc = "Float diff: file vs index",
+      },
+      {
+        "<leader>hgD",
+        function()
+          git_floats().unified({ repo = true })
+        end,
+        desc = "Float diff: repository",
+      },
+      {
+        "<leader>hgc",
+        function()
+          git_floats().unified({ staged = true })
+        end,
+        desc = "Float diff: staged",
+      },
+      {
+        "<leader>hgm",
+        function()
+          git_floats().unified({ repo = true, base = "origin/main" })
+        end,
+        desc = "Float diff vs origin/main",
+      },
+      {
+        "<leader>hgb",
+        function()
+          git_floats().changed_vs_base("origin/main")
+        end,
+        desc = "Browse changes vs origin/main",
       },
     },
     opts = {
       signcolumn = true,
       current_line_blame = false,
+      preview_config = {
+        border = "rounded",
+        style = "minimal",
+        relative = "cursor",
+        row = 0,
+        col = 1,
+      },
     },
-  }
+  },
 }

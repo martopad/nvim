@@ -24,8 +24,8 @@ vim.keymap.set("n", "<C-u>", "<C-u>zz", { desc = "Half page up (centered)" })
 vim.keymap.set("x", "<leader>p", '"_dP', { desc = "Paste without yanking" })
 vim.keymap.set({ "n", "v" }, "<leader>x", '"_d', { desc = "Delete without yanking" })
 
-vim.keymap.set("n", "<leader>bn", ":bnext<CR>", { desc = "Next buffer" })
-vim.keymap.set("n", "<leader>bp", ":bprevious<CR>", { desc = "Previous buffer" })
+vim.keymap.set("n", "]b", ":bnext<CR>", { desc = "Next buffer" })
+vim.keymap.set("n", "[b", ":bprevious<CR>", { desc = "Previous buffer" })
 
 vim.keymap.set("n", "<C-h>", "<Cmd>wincmd h<CR>", { desc = "Move to left window" })
 vim.keymap.set("n", "<C-j>", "<Cmd>wincmd j<CR>", { desc = "Move to bottom window" })

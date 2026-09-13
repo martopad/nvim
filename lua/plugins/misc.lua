@@ -5,6 +5,10 @@
 
 return {
   {
+    "sphamba/smear-cursor.nvim",
+    opts = {},
+  },
+  {
     "echasnovski/mini.nvim",
     config = function()
       require("mini.comment").setup()

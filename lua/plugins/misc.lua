@@ -19,4 +19,7 @@ return {
       require("mini.notify").setup()
     end,
   },
+  {
+    "justinmk/vim-sneak",
+  },
 }

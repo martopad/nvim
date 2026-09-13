@@ -1,5 +1,5 @@
 {
-  "LuaSnip": { "branch": "master", "commit": "642b0c595e11608b4c18219e93b88d7637af27bc" },
+"LuaSnip": { "branch": "master", "commit": "642b0c595e11608b4c18219e93b88d7637af27bc" },
   "blink.cmp": { "branch": "main", "commit": "78336bc89ee5365633bcf754d93df01678b5c08f" },
   "catppuccin": { "branch": "main", "commit": "e068ab5f8261f23f6f71ffd8791ae40315b77b9c" },
   "efmls-configs-nvim": { "branch": "main", "commit": "e872dc195336716b19023b7a4dd9f689352acc8d" },
@@ -22,7 +22,6 @@
   "toggleterm.nvim": { "branch": "main", "commit": "50ea089fc548917cc3cc16b46a8211833b9e3c7c" },
   "tree-sitter-manager.nvim": { "branch": "main", "commit": "9dc4ffc4fb010e7abb976a92360c2c5a7d324c15" },
   "vim-sneak": { "branch": "master", "commit": "feea86adcfbf8e6b5e71fdd5f4f5736fd8819fdb" }
-}
-
-  "lazy.nvim": { "branch": "main", "commit": "306a05526ada86a7b30af95c5cc81ffba93fef97" }
+},
+"catppuccin": { "branch": "main", "commit": "0303a7208dba448c459767486a38a6ec05c4216b" },  "lazy.nvim": { "branch": "main", "commit": "306a05526ada86a7b30af95c5cc81ffba93fef97" }
 }

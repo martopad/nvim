@@ -1,6 +1,6 @@
 -- ============================================================================
+-- Various small packages that don't fit into any other category, but are still useful to have.
 -- Plugin Configuration: mini
--- Mini contains various quality of life improvements for nvim
 -- ============================================================================
 
 return {

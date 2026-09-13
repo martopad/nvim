@@ -102,6 +102,14 @@ return {
         end,
         desc = "Review commit (side-by-side)",
       },
+
+      {
+        "<leader>hgh",
+        function()
+          git_floats().toggle_diff_view()
+        end,
+        desc = "Hide/show side-by-side diff view",
+      },
       {
         "<leader>hgd",
         function()

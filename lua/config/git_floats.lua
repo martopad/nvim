@@ -2,15 +2,43 @@
 
 local M = {}
 
-local HIDE_VIMDIFF_HL =
-  "DiffAdd:Normal,DiffChange:Normal,DiffDelete:Normal,DiffText:Normal,DiffTextAdd:Normal,DiffTextDelete:Normal"
-
-local function git_root()
-  local out = vim.fn.systemlist({ "git", "rev-parse", "--show-toplevel" })
-  if vim.v.shell_error ~= 0 then
+local function resolve_toplevel(dir)
+  if not dir or dir == "" then
+    return nil
+  end
+  local out = vim.fn.systemlist({ "git", "-C", dir, "rev-parse", "--show-toplevel" })
+  if vim.v.shell_error ~= 0 or not out[1] or out[1] == "" then
     return nil
   end
   return out[1]
+end
+
+---Resolve the git repo root. Neovim's cwd may not be the repo (e.g. the repo is
+---a subdirectory of the opened workspace), so we probe, in order: an explicit
+---path hint, the current buffer's directory, the `vim.g.git_floats_root`
+---override, then the cwd. The first that resolves to a toplevel wins.
+---@param path? string File or directory hint.
+local function git_root(path)
+  local candidates = {}
+  if path and path ~= "" then
+    table.insert(candidates, vim.fn.isdirectory(path) == 1 and path or vim.fn.fnamemodify(path, ":h"))
+  end
+  local file = vim.fn.expand("%:p")
+  if file ~= "" then
+    table.insert(candidates, vim.fn.fnamemodify(file, ":h"))
+  end
+  if vim.g.git_floats_root and vim.g.git_floats_root ~= "" then
+    table.insert(candidates, vim.fn.expand(vim.g.git_floats_root))
+  end
+  table.insert(candidates, vim.fn.getcwd())
+
+  for _, dir in ipairs(candidates) do
+    local root = resolve_toplevel(dir)
+    if root then
+      return root
+    end
+  end
+  return nil
 end
 
 local function diff_range(base)
@@ -24,79 +52,26 @@ local function match_editor_background(win)
   vim.wo[win].winhighlight = "Normal:Normal,NormalFloat:Normal"
 end
 
-local function configure_diff_pane(win)
+---Configure a diff pane.
+local function configure_diff_pane(win, side)
   vim.wo[win].list = false
   vim.wo[win].signcolumn = "no"
   vim.wo[win].foldcolumn = "0"
   vim.wo[win].wrap = false
   vim.wo[win].cursorline = false
-  -- vimdiff overwrites syntax fg; hide its hl and tint lines via extmarks instead.
-  vim.wo[win].winhighlight = "Normal:Normal,NormalFloat:Normal," .. HIDE_VIMDIFF_HL
-end
 
-local WORD_DIFF_HL = {
-  DiffText = true,
-  DiffTextAdd = true,
-  DiffTextDelete = true,
-}
-
-local function diff_hl_name_at(lnum, col)
-  local hlid = vim.fn.diff_hlID(lnum, col)
-  if hlid == 0 then
-    return nil
-  end
-  return vim.fn.synIDattr(hlid, "name")
-end
-
-local function diff_ranges_for_line(lnum)
-  local line = vim.api.nvim_buf_get_lines(0, lnum - 1, lnum, false)[1] or ""
-  local ranges = {}
-  local col = 1
-  while col <= #line do
-    local name = diff_hl_name_at(lnum, col)
-    if name then
-      local start_col = col
-      while col <= #line and diff_hl_name_at(lnum, col) == name do
-        col = col + 1
-      end
-      ranges[#ranges + 1] = { name = name, start_col = start_col, end_col = col - 1 }
-    else
-      col = col + 1
-    end
-  end
-  return ranges
-end
-
----Line + word tints after vimdiff; matchadd keeps syntax fg (Gerrit-style).
-local function apply_diff_highlights(win, side)
-  local line_hl = side == "right" and "GerritDiffAdd" or "GerritDiffDelete"
-  local word_hl = side == "right" and "GerritDiffWord" or "GerritDiffWordDelete"
-
-  vim.api.nvim_win_call(win, function()
-    vim.fn.clearmatches()
-    for lnum = 1, vim.api.nvim_buf_line_count(0) do
-      local ranges = diff_ranges_for_line(lnum)
-      if #ranges == 0 then
-        goto continue
-      end
-
-      vim.fn.matchadd(line_hl, "\\%" .. lnum .. "l", 0)
-
-      for _, range in ipairs(ranges) do
-        if WORD_DIFF_HL[range.name] then
-          local pattern = string.format(
-            "\\%%%dl\\%%%dc.*\\%%%dc",
-            lnum,
-            range.start_col,
-            range.end_col
-          )
-          vim.fn.matchadd(word_hl, pattern, 10)
-        end
-      end
-
-      ::continue::
-    end
-  end)
+   local line_hl = side == "right" and "DiffAdd" or "DiffDelete"
+   local word_hl = side == "right" and "DiffWord" or "DiffWordDelete"
+   vim.wo[win].winhighlight = table.concat({
+     "Normal:Normal",
+     "NormalFloat:Normal",
+     "DiffAdd:DiffAdd",
+     "DiffChange:DiffAdd",
+     "DiffDelete:DiffDelete",
+     "DiffText:DiffText",
+     "DiffTextAdd:DiffText",
+     "DiffTextDelete:DiffText",
+   }, ",")
 end
 
 local function close_diff_windows(wins)
@@ -110,6 +85,8 @@ end
 local function close_maps(bufs, wins)
   local function close()
     close_diff_windows(wins)
+    M._view = nil
+    M._hidden = nil
   end
 
   for _, buf in ipairs(bufs) do
@@ -123,9 +100,6 @@ end
 ---@field base string
 ---@field files string[] Relative paths.
 ---@field index integer
----@field kind? "working_tree"|"commit"
----@field commit? string
----@field parent? string Parent revision for commit review. Nil for initial commits.
 
 local function git_blob_lines(root, rev, rel)
   local ref = rev == ":" and (":" .. rel) or (rev .. ":" .. rel)
@@ -150,6 +124,13 @@ local function commit_parent(root, commit)
   end
   return parent[1]
 end
+
+local function rev_exists(root, rev)
+  vim.fn.system({ "git", "-C", root, "cat-file", "-e", rev .. "^{commit}" })
+  return vim.v.shell_error == 0
+end
+
+
 
 local function commit_files(root, commit)
   local files = vim.fn.systemlist({
@@ -317,6 +298,19 @@ local function changed_files(root, scope, base)
   return files
 end
 
+local function first_commented_index(files, comments)
+  if not comments then
+    return nil
+  end
+  for index, file in ipairs(files) do
+    local list = comments[file]
+    if list and #list > 0 then
+      return index
+    end
+  end
+  return nil
+end
+
 local function review_index_for_current(files, root)
   local current = vim.fn.systemlist({
     "git",
@@ -362,7 +356,6 @@ function M.review_side_by_side(opts)
     session = {
       root = root,
       base = base,
-      kind = "working_tree",
       files = files,
       index = review_index_for_current(files, root),
     },
@@ -417,108 +410,7 @@ function M.review_commit(commit)
   })
 end
 
----Show a file in a side-by-side vimdiff inside floating windows.
----@param opts? string|GitFloats.SideBySideOpts
-function M.side_by_side(opts)
-  if type(opts) == "string" then
-    opts = { base = opts }
-  end
-  opts = opts or {}
-  local base = opts.base or "HEAD"
-  local session = opts.session
-  local root = git_root()
-  if not root then
-    return vim.notify("Not a git repository", vim.log.levels.WARN)
-  end
 
-  local path = opts.path or vim.fn.expand("%:p")
-  local rel
-  local is_commit = session and session.kind == "commit"
-
-  if session then
-    rel = session.files[session.index]
-    path = session.root .. "/" .. rel
-    if not is_commit then
-      base = session.base
-    end
-  end
-
-  if path == "" then
-    return vim.notify("No file to diff", vim.log.levels.WARN)
-  end
-
-  if not rel and not is_commit then
-    rel = vim.fn.systemlist({
-      "git",
-      "-C",
-      root,
-      "ls-files",
-      "--full-name",
-      path,
-    })[1]
-  end
-
-  if not rel or rel == "" then
-    return vim.notify("File is not tracked by git", vim.log.levels.WARN)
-  end
-
-  if not is_commit and base == ":" then
-    vim.fn.system({ "git", "-C", root, "diff", "--quiet", "--", rel })
-    if vim.v.shell_error == 0 then
-      return vim.notify("No unstaged changes in " .. rel, vim.log.levels.INFO)
-    end
-  end
-
-  local old_lines
-  local current_lines
-  local left_label
-  local right_label
-  local right_modifiable = true
-
-  if is_commit then
-    left_label = session.parent and git_short_rev(root, session.parent) or "empty"
-    right_label = git_short_rev(root, session.commit)
-    old_lines = session.parent and git_blob_lines(root, session.parent, rel) or {}
-    current_lines = git_blob_lines(root, session.commit, rel)
-    right_modifiable = false
-  else
-    old_lines = git_blob_lines(root, base == ":" and ":" or base, rel)
-
-    if path == vim.fn.expand("%:p") then
-      current_lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
-    else
-      current_lines = vim.fn.readfile(path)
-    end
-    left_label = base == ":" and "index" or base
-    right_label = "working tree"
-  end
-
-  local filetype = vim.bo.filetype
-  if path ~= vim.fn.expand("%:p") then
-    filetype = vim.filetype.match({ filename = path }) or ""
-  end
-
-  local file_title = session and string.format("[%d/%d] ", session.index, #session.files) or ""
-
-  local total_width = math.min(vim.o.columns - 6, 220)
-  local height = math.min(vim.o.lines - 6, 45)
-  local pane_width = math.floor((total_width - 2) / 2)
-  local row = math.floor((vim.o.lines - height) / 2) - 1
-  local col = math.floor((vim.o.columns - total_width) / 2)
-
-  local function open_pane(lines, column, title, modifiable)
-    local buf = vim.api.nvim_create_buf(false, true)
-    vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
-    vim.bo[buf].filetype = filetype
-    vim.bo[buf].bufhidden = "wipe"
-    vim.bo[buf].modifiable = modifiable
-    local win = vim.api.nvim_open_win(buf, false, {
-      relative = "editor",
-      width = pane_width,
-      height = height,
-      row = row,
-      col = column,
-      border = "rounded",
       title = title,
       title_pos = "center",
     })
@@ -539,8 +431,8 @@ function M.side_by_side(opts)
     right_modifiable
   )
 
-  configure_diff_pane(left_win)
-  configure_diff_pane(right_win)
+  configure_diff_pane(left_win, "left")
+  configure_diff_pane(right_win, "right")
 
   for _, win in ipairs({ left_win, right_win }) do
     vim.api.nvim_win_call(win, function()
@@ -548,8 +440,6 @@ function M.side_by_side(opts)
     end)
   end
 
-  apply_diff_highlights(left_win, "left")
-  apply_diff_highlights(right_win, "right")
 
   vim.api.nvim_set_current_win(right_win)
   pane_maps(left_win, right_win, left_buf, right_buf)
@@ -557,6 +447,73 @@ function M.side_by_side(opts)
     file_nav_maps(session, { left_win, right_win }, { left_buf, right_buf })
   end
   close_maps({ left_buf, right_buf }, { left_win, right_win })
+
+  -- Remember this view so it can be hidden/restored (see M.toggle_diff_view).
+  local reopen_opts = vim.tbl_extend("force", {}, opts)
+  reopen_opts.right_lines = nil
+  reopen_opts.path = path
+  reopen_opts.base = base
+  M._view = {
+    left_win = left_win,
+    right_win = right_win,
+    left_buf = left_buf,
+    right_buf = right_buf,
+    right_modifiable = right_modifiable,
+    reopen_opts = reopen_opts,
+  }
+end
+
+---Hide the current side-by-side view, or restore the last hidden one.
+---State (file, comments, cursor, and any right-pane edits) is preserved.
+function M.toggle_diff_view()
+  local v = M._view
+  if v and (vim.api.nvim_win_is_valid(v.left_win) or vim.api.nvim_win_is_valid(v.right_win)) then
+    local cur = vim.api.nvim_get_current_win()
+    local focus_win = cur
+    if not (cur == v.left_win or cur == v.right_win) then
+      focus_win = vim.api.nvim_win_is_valid(v.right_win) and v.right_win or v.left_win
+    end
+
+    local saved = { side = "right" }
+    if vim.api.nvim_win_is_valid(focus_win) then
+      saved.cursor = vim.api.nvim_win_get_cursor(focus_win)
+      saved.side = (focus_win == v.left_win) and "left" or "right"
+    end
+
+    local right_lines
+    if v.right_modifiable and vim.api.nvim_buf_is_valid(v.right_buf) then
+      right_lines = vim.api.nvim_buf_get_lines(v.right_buf, 0, -1, false)
+    end
+
+    close_diff_windows({ v.left_win, v.right_win })
+    M._hidden = { reopen_opts = v.reopen_opts, right_lines = right_lines, saved = saved }
+    M._view = nil
+    return
+  end
+
+  if M._hidden then
+    local h = M._hidden
+    M._hidden = nil
+    local opts = vim.tbl_extend("force", {}, h.reopen_opts or {})
+    opts.right_lines = h.right_lines
+    M.side_by_side(opts)
+
+    local nv = M._view
+    if nv and h.saved then
+      local win = (h.saved.side == "left") and nv.left_win or nv.right_win
+      local buf = (h.saved.side == "left") and nv.left_buf or nv.right_buf
+      if win and vim.api.nvim_win_is_valid(win) then
+        if h.saved.cursor and vim.api.nvim_buf_is_valid(buf) then
+          local row = math.min(h.saved.cursor[1], vim.api.nvim_buf_line_count(buf))
+          pcall(vim.api.nvim_win_set_cursor, win, { row, h.saved.cursor[2] })
+        end
+        vim.api.nvim_set_current_win(win)
+      end
+    end
+    return
+  end
+
+  vim.notify("No side-by-side view to toggle", vim.log.levels.INFO)
 end
 
 ---Browse files changed against a base revision with a floating Telescope diff preview.

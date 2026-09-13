@@ -26,14 +26,14 @@ return {
         desc = "Toggle NvimTree",
       },
       {
-        "<leader>b",
+        "<leader>e",
         function()
           require("nvim-tree.api").tree.open()
         end,
-        desc = "Focus to NvimTree",
+        desc = "Focus NvimTree",
       },
       {
-        "<leader>bf",
+        "<leader>ef",
         function()
           local current_file_path = vim.fn.expand("%:p")
           local real_file = vim.fn.filereadable(current_file_path) == 1
@@ -42,7 +42,7 @@ return {
           end
           require("nvim-tree.api").tree.open({ focus = true, find_file = true, path = current_file_path })
         end,
-        desc = "Focus to NvimTree with respect to opened file",
+        desc = "Focus NvimTree on current file",
       },
     },
     opts = {

@@ -6,73 +6,88 @@
 -- convenient to display.
 -- ============================================================================
 
--- Append to this variable if you have formatters or linters that will be used by efm.
-local fmts_linters_non_ls = {
-	"luacheck",
+return {
+  {
+    "neovim/nvim-lspconfig",
+    dependencies = {
+      "williamboman/mason.nvim",
+      "WhoIsSethDaniel/mason-tool-installer.nvim",
+      "creativenull/efmls-configs-nvim" -- Ensures your efm requires work seamlessly
+    },
+    config = function()
+      -- Add here: Non-Language Server Linter/Formatter
+      local fmts_linters_non_ls = { "luacheck" }
+
+      -- Add here: efmls imported configurations
+      local languages = {
+        python = {
+          require("efmls-configs.formatters.ruff"),
+          require("efmls-configs.formatters.ruff_sort"),
+          require("efmls-configs.linters.ruff")
+        },
+        lua = {
+          require("efmls-configs.linters.luacheck")
+        }
+      }
+
+      -- Add here: Language servers and their configurations
+      local lang_servers_and_configs = {
+        { "basedpyright", {} },
+        { "ruff",         {} },
+        {
+          "efm",
+          {
+            filetypes = vim.tbl_keys(languages),
+            init_options = { documentFormatting = true },
+            settings = {
+              languages = languages
+            }
+          }
+        },
+        {
+          "lua_ls",
+          {
+            -- lua_ls uses EmmyLuaCodeStyle(.editorconfig) configuration file format
+            root_markers = { ".git", ".editorconfig", ".luarc.json" },
+          }
+        }
+      }
+
+      -- Mapping Neovim LSP IDs to Mason-specific names for installation
+      -- There is no "lua_ls" package in Mason's registry. But "lua_ls" is still the name of
+      -- the LSP to be used in neovim.
+      local lsp_to_mason_map = {
+        lua_ls = "lua-language-server",
+      }
+
+      local to_install = {}
+      for _, entry in ipairs(lang_servers_and_configs) do
+        local server_name = entry[1]
+        -- Use the Mason translation fallback if it exists, otherwise use raw name
+        local mason_package = lsp_to_mason_map[server_name] or server_name
+        table.insert(to_install, mason_package)
+      end
+
+      -- Append non-ls tools to the install queue
+      table.move(fmts_linters_non_ls, 1, #fmts_linters_non_ls, #to_install + 1, to_install)
+
+      require("mason").setup()
+      require("mason-tool-installer").setup({
+        ensure_installed = to_install
+      })
+
+      -- Enable language servers natively via Neovim LSP IDs
+      local lang_servers = vim.tbl_map(function(s)
+        return s[1]
+      end, lang_servers_and_configs)
+
+      for _, entry in ipairs(lang_servers_and_configs) do
+        local name = entry[1]
+        local config = entry[2]
+
+        vim.lsp.config(name, config)
+      end
+      vim.lsp.enable(lang_servers)
+    end
+  }
 }
-
--- Don't forget to sync the tools above with the neccessary efmls-configs below.
-local fmt_ruff = require("efmls-configs.formatters.ruff")
-local fmt_ruff_sort = require("efmls-configs.formatters.ruff_sort")
-
-local lint_ruff = require("efmls-configs.linters.ruff")
-local lint_luacheck = require("efmls-configs.linters.luacheck")
-
-local languages = {
-	python = { fmt_ruff, fmt_ruff_sort, lint_ruff },
-	lua = { lint_luacheck },
-}
-
--- Append to this variable if you want to add more language servers.
-local lang_servers_and_configs = {
-	{ "basedpyright", {} },
-	{ "ruff",         {} },
-	{
-		"efm",
-		{
-			filetypes = vim.tbl_keys(languages),
-			init_options = { documentFormatting = true },
-			settings = {
-				languages = languages,
-			},
-		},
-	},
-	{
-		"lua_ls",
-		{
-			settings = {
-				Lua = {
-					format = { enable = true },
-					diagnostics = { globals = { "vim" }, enable = true },
-					telemetry = { enable = false },
-				},
-			},
-		},
-	},
-}
-
-local lang_servers = vim.tbl_map(function(s)
-	return s[1]
-end, lang_servers_and_configs)
-local to_install = {}
--- copy lang_servers to to_install
-table.move(lang_servers, 1, #lang_servers, 1, to_install)
--- copy fmts_linters_non_ls to to_install
-table.move(fmts_linters_non_ls, 1, #fmts_linters_non_ls, #to_install + 1, to_install)
-
-require("mason").setup()
-require("mason-tool-installer").setup({
-	ensure_installed = to_install,
-	integrations = {
-		["mason-lspconfig"] = true,
-	},
-})
-
-for _, entry in ipairs(lang_servers_and_configs) do
-	local name = entry[1]
-	local config = entry[2]
-
-	vim.lsp.config(name, config)
-end
-
-vim.lsp.enable(lang_servers)

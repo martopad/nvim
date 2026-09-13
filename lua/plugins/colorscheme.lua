@@ -40,6 +40,23 @@ return {
       vim.api.nvim_set_hl(0, "diffAdded", { bg = gerrit_diff.add_line })
       vim.api.nvim_set_hl(0, "diffRemoved", { bg = gerrit_diff.remove_line })
       vim.api.nvim_set_hl(0, "diffChanged", { bg = gerrit_diff.add_line })
+
+      -- Gerrit review comment overlays (git_floats side-by-side): a filled
+      -- "card" panel with a colored left border, bold author, dim meta,
+      -- readable body, and an Unresolved/Resolved footer badge.
+      local card_bg = "#2b2a20"
+      vim.api.nvim_set_hl(0, "GerritCommentBorder", { fg = "#c9a94a", bg = card_bg })
+      vim.api.nvim_set_hl(0, "GerritCommentAuthor", { fg = "#f0e6c8", bg = card_bg, bold = true })
+      vim.api.nvim_set_hl(0, "GerritCommentHeader", { fg = card_bg, bg = card_bg })
+      vim.api.nvim_set_hl(0, "GerritCommentMeta", { fg = "#9d9878", bg = card_bg, italic = true })
+      vim.api.nvim_set_hl(0, "GerritCommentBody", { fg = "#d7d0b8", bg = card_bg })
+      vim.api.nvim_set_hl(0, "GerritCommentUnresolved", { fg = "#e88f5a", bg = card_bg, bold = true })
+      vim.api.nvim_set_hl(0, "GerritCommentResolved", { fg = "#a3c98a", bg = card_bg })
+      -- End-of-line marker on the commented code line (no card background).
+      vim.api.nvim_set_hl(0, "GerritCommentSign", { fg = "#c9a94a" })
+      vim.api.nvim_set_hl(0, "GerritCommentSignUnresolved", { fg = "#e88f5a", bold = true })
+      -- Backwards-compatible alias.
+      vim.api.nvim_set_hl(0, "GerritComment", { fg = "#f0e6c8", bg = card_bg, bold = true })
     end,
   },
 }

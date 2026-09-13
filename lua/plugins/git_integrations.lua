@@ -103,6 +103,26 @@ return {
         desc = "Review commit (side-by-side)",
       },
       {
+        "<leader>hgG",
+        function()
+          vim.ui.input({ prompt = "Gerrit change (empty = HEAD): " }, function(input)
+            if input == nil then
+              return
+            end
+            input = vim.trim(input)
+            git_floats().review_gerrit({ change = input ~= "" and input or nil })
+          end)
+        end,
+        desc = "Review Gerrit change with comments",
+      },
+      {
+        "<leader>hgh",
+        function()
+          git_floats().toggle_diff_view()
+        end,
+        desc = "Hide/show side-by-side diff view",
+      },
+      {
         "<leader>hgd",
         function()
           git_floats().unified()

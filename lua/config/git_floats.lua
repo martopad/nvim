@@ -2,15 +2,43 @@
 
 local M = {}
 
-local HIDE_VIMDIFF_HL =
-  "DiffAdd:Normal,DiffChange:Normal,DiffDelete:Normal,DiffText:Normal,DiffTextAdd:Normal,DiffTextDelete:Normal"
-
-local function git_root()
-  local out = vim.fn.systemlist({ "git", "rev-parse", "--show-toplevel" })
-  if vim.v.shell_error ~= 0 then
+local function resolve_toplevel(dir)
+  if not dir or dir == "" then
+    return nil
+  end
+  local out = vim.fn.systemlist({ "git", "-C", dir, "rev-parse", "--show-toplevel" })
+  if vim.v.shell_error ~= 0 or not out[1] or out[1] == "" then
     return nil
   end
   return out[1]
+end
+
+---Resolve the git repo root. Neovim's cwd may not be the repo (e.g. the repo is
+---a subdirectory of the opened workspace), so we probe, in order: an explicit
+---path hint, the current buffer's directory, the `vim.g.git_floats_root`
+---override, then the cwd. The first that resolves to a toplevel wins.
+---@param path? string File or directory hint.
+local function git_root(path)
+  local candidates = {}
+  if path and path ~= "" then
+    table.insert(candidates, vim.fn.isdirectory(path) == 1 and path or vim.fn.fnamemodify(path, ":h"))
+  end
+  local file = vim.fn.expand("%:p")
+  if file ~= "" then
+    table.insert(candidates, vim.fn.fnamemodify(file, ":h"))
+  end
+  if vim.g.git_floats_root and vim.g.git_floats_root ~= "" then
+    table.insert(candidates, vim.fn.expand(vim.g.git_floats_root))
+  end
+  table.insert(candidates, vim.fn.getcwd())
+
+  for _, dir in ipairs(candidates) do
+    local root = resolve_toplevel(dir)
+    if root then
+      return root
+    end
+  end
+  return nil
 end
 
 local function diff_range(base)
@@ -24,79 +52,28 @@ local function match_editor_background(win)
   vim.wo[win].winhighlight = "Normal:Normal,NormalFloat:Normal"
 end
 
-local function configure_diff_pane(win)
+---Configure a diff pane. Diff groups are remapped per-window to bg-only Gerrit
+---groups so native diff supplies the line/word backgrounds (red left, green
+---right) while Treesitter/syntax keeps the foreground colors on changed lines.
+local function configure_diff_pane(win, side)
   vim.wo[win].list = false
   vim.wo[win].signcolumn = "no"
   vim.wo[win].foldcolumn = "0"
   vim.wo[win].wrap = false
   vim.wo[win].cursorline = false
-  -- vimdiff overwrites syntax fg; hide its hl and tint lines via extmarks instead.
-  vim.wo[win].winhighlight = "Normal:Normal,NormalFloat:Normal," .. HIDE_VIMDIFF_HL
-end
 
-local WORD_DIFF_HL = {
-  DiffText = true,
-  DiffTextAdd = true,
-  DiffTextDelete = true,
-}
-
-local function diff_hl_name_at(lnum, col)
-  local hlid = vim.fn.diff_hlID(lnum, col)
-  if hlid == 0 then
-    return nil
-  end
-  return vim.fn.synIDattr(hlid, "name")
-end
-
-local function diff_ranges_for_line(lnum)
-  local line = vim.api.nvim_buf_get_lines(0, lnum - 1, lnum, false)[1] or ""
-  local ranges = {}
-  local col = 1
-  while col <= #line do
-    local name = diff_hl_name_at(lnum, col)
-    if name then
-      local start_col = col
-      while col <= #line and diff_hl_name_at(lnum, col) == name do
-        col = col + 1
-      end
-      ranges[#ranges + 1] = { name = name, start_col = start_col, end_col = col - 1 }
-    else
-      col = col + 1
-    end
-  end
-  return ranges
-end
-
----Line + word tints after vimdiff; matchadd keeps syntax fg (Gerrit-style).
-local function apply_diff_highlights(win, side)
   local line_hl = side == "right" and "GerritDiffAdd" or "GerritDiffDelete"
   local word_hl = side == "right" and "GerritDiffWord" or "GerritDiffWordDelete"
-
-  vim.api.nvim_win_call(win, function()
-    vim.fn.clearmatches()
-    for lnum = 1, vim.api.nvim_buf_line_count(0) do
-      local ranges = diff_ranges_for_line(lnum)
-      if #ranges == 0 then
-        goto continue
-      end
-
-      vim.fn.matchadd(line_hl, "\\%" .. lnum .. "l", 0)
-
-      for _, range in ipairs(ranges) do
-        if WORD_DIFF_HL[range.name] then
-          local pattern = string.format(
-            "\\%%%dl\\%%%dc.*\\%%%dc",
-            lnum,
-            range.start_col,
-            range.end_col
-          )
-          vim.fn.matchadd(word_hl, pattern, 10)
-        end
-      end
-
-      ::continue::
-    end
-  end)
+  vim.wo[win].winhighlight = table.concat({
+    "Normal:Normal",
+    "NormalFloat:Normal",
+    "DiffAdd:" .. line_hl,
+    "DiffChange:" .. line_hl,
+    "DiffDelete:" .. line_hl,
+    "DiffText:" .. word_hl,
+    "DiffTextAdd:" .. word_hl,
+    "DiffTextDelete:" .. word_hl,
+  }, ",")
 end
 
 local function close_diff_windows(wins)
@@ -110,6 +87,8 @@ end
 local function close_maps(bufs, wins)
   local function close()
     close_diff_windows(wins)
+    M._view = nil
+    M._hidden = nil
   end
 
   for _, buf in ipairs(bufs) do
@@ -123,9 +102,11 @@ end
 ---@field base string
 ---@field files string[] Relative paths.
 ---@field index integer
----@field kind? "working_tree"|"commit"
+---@field kind? "working_tree"|"commit"|"gerrit"
 ---@field commit? string
 ---@field parent? string Parent revision for commit review. Nil for initial commits.
+---@field comments? table<string, table[]> Gerrit comments keyed by file path.
+---@field change? table Resolved Gerrit change info (number, subject, ...).
 
 local function git_blob_lines(root, rev, rel)
   local ref = rev == ":" and (":" .. rel) or (rev .. ":" .. rel)
@@ -149,6 +130,19 @@ local function commit_parent(root, commit)
     return nil
   end
   return parent[1]
+end
+
+local function rev_exists(root, rev)
+  vim.fn.system({ "git", "-C", root, "cat-file", "-e", rev .. "^{commit}" })
+  return vim.v.shell_error == 0
+end
+
+local function fetch_gerrit_ref(root, ref)
+  local out = vim.fn.systemlist({ "git", "-C", root, "fetch", "origin", ref })
+  if vim.v.shell_error ~= 0 then
+    return false, table.concat(out, "\n")
+  end
+  return true
 end
 
 local function commit_files(root, commit)
@@ -317,6 +311,19 @@ local function changed_files(root, scope, base)
   return files
 end
 
+local function first_commented_index(files, comments)
+  if not comments then
+    return nil
+  end
+  for index, file in ipairs(files) do
+    local list = comments[file]
+    if list and #list > 0 then
+      return index
+    end
+  end
+  return nil
+end
+
 local function review_index_for_current(files, root)
   local current = vim.fn.systemlist({
     "git",
@@ -417,6 +424,129 @@ function M.review_commit(commit)
   })
 end
 
+---@class GitFloats.GerritOpts
+---@field change? string|integer Change number or Change-Id. Defaults to HEAD's change.
+
+---Review HEAD's Gerrit change side-by-side with reviewer comments overlaid.
+---The right pane is the working tree (editable so you can address feedback).
+---Falls back to a plain commit review when no Gerrit change is found.
+---@param opts? GitFloats.GerritOpts
+function M.review_gerrit(opts)
+  opts = opts or {}
+
+  local root = git_root()
+  if not root then
+    return vim.notify("Not a git repository", vim.log.levels.WARN)
+  end
+
+  vim.notify("Fetching Gerrit comments…", vim.log.levels.INFO)
+
+  local gerrit = require("config.gerrit_comments")
+  local info, err = gerrit.resolve_for_head(root, opts.change)
+  if not info then
+    vim.notify("Gerrit: " .. (err or "no change for HEAD") .. " — showing commit diff", vim.log.levels.WARN)
+    return M.review_commit("HEAD")
+  end
+
+  local head = vim.fn.systemlist({ "git", "-C", root, "rev-parse", "HEAD" })[1]
+  local target = info.revision_sha
+  local session
+
+  if target and target == head then
+    -- Reviewing the checked-out change: diff its parent against the working
+    -- tree so the right pane stays editable for addressing feedback.
+    local files, ferr = commit_files(root, "HEAD")
+    if not files then
+      return vim.notify(ferr, vim.log.levels.ERROR)
+    end
+    if #files == 0 then
+      return vim.notify("HEAD has no file changes", vim.log.levels.INFO)
+    end
+    session = {
+      root = root,
+      base = commit_parent(root, "HEAD") or "HEAD",
+      kind = "gerrit",
+      gerrit_revision_side = "right",
+      files = files,
+      index = first_commented_index(files, info.comments_by_path)
+        or review_index_for_current(files, root),
+      comments = info.comments_by_path,
+      change = info,
+    }
+  else
+    -- Reviewing some other change: make sure its patch set is present, then
+    -- diff that revision against its parent (right pane read-only).
+    if not target then
+      return vim.notify("Gerrit change has no revision to review", vim.log.levels.ERROR)
+    end
+    if not rev_exists(root, target) then
+      if not info.fetch_ref then
+        vim.notify(
+          string.format("Gerrit %s: patch set not local and no fetch ref (project %s?)", info.number, info.project or "?"),
+          vim.log.levels.ERROR
+        )
+        return
+      end
+      vim.notify("Fetching Gerrit patch set " .. info.fetch_ref .. "…", vim.log.levels.INFO)
+      local ok, ferr = fetch_gerrit_ref(root, info.fetch_ref)
+      if not ok or not rev_exists(root, target) then
+        vim.notify(
+          string.format(
+            "Gerrit %s: could not fetch %s (project %s).\n%s",
+            info.number,
+            info.fetch_ref,
+            info.project or "?",
+            ferr or ""
+          ),
+          vim.log.levels.ERROR
+        )
+        return
+      end
+    end
+
+    local files, ferr = commit_files(root, target)
+    if not files then
+      return vim.notify(ferr, vim.log.levels.ERROR)
+    end
+    if #files == 0 then
+      return vim.notify("Gerrit change has no file changes", vim.log.levels.INFO)
+    end
+    -- Compare the change's revision (left) against the local working tree
+    -- (right, editable). No `commit` field => working-tree render.
+    session = {
+      root = root,
+      base = target,
+      kind = "gerrit",
+      gerrit_revision_side = "left",
+      files = files,
+      index = first_commented_index(files, info.comments_by_path)
+        or review_index_for_current(files, root),
+      comments = info.comments_by_path,
+      change = info,
+    }
+  end
+
+  M.side_by_side({ session = session })
+
+  local file_count, comment_count = 0, 0
+  for _, list in pairs(info.comments_by_path or {}) do
+    file_count = file_count + 1
+    comment_count = comment_count + #list
+  end
+
+  vim.notify(
+    string.format(
+      "Gerrit %s PS%s: %s\n%d comment(s) across %d file(s)",
+      info.number,
+      info.target_ps or "?",
+      info.subject or "",
+      comment_count,
+      file_count
+    ),
+    vim.log.levels.INFO
+  )
+end
+
 ---Show a file in a side-by-side vimdiff inside floating windows.
 ---@param opts? string|GitFloats.SideBySideOpts
 function M.side_by_side(opts)
@@ -426,14 +556,21 @@ function M.side_by_side(opts)
   opts = opts or {}
   local base = opts.base or "HEAD"
   local session = opts.session
-  local root = git_root()
+  -- A session already knows its repo; only re-detect for standalone opens
+  -- (navigation/toggle can run while a scratch diff pane is focused).
+  local root = (session and session.root) or git_root(opts.path)
   if not root then
     return vim.notify("Not a git repository", vim.log.levels.WARN)
   end
 
+  -- A freshly opened view supersedes any previously hidden one.
+  M._hidden = nil
+
   local path = opts.path or vim.fn.expand("%:p")
   local rel
-  local is_commit = session and session.kind == "commit"
+  -- Commit-style rendering (parent vs revision, read-only right pane) applies
+  -- to plain commit reviews and to Gerrit reviews of a non-checked-out change.
+  local is_commit = session and session.commit ~= nil
 
   if session then
     rel = session.files[session.index]
@@ -484,13 +621,23 @@ function M.side_by_side(opts)
   else
     old_lines = git_blob_lines(root, base == ":" and ":" or base, rel)
 
-    if path == vim.fn.expand("%:p") then
+    if opts.right_lines then
+      current_lines = opts.right_lines
+    elseif path == vim.fn.expand("%:p") then
       current_lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
     else
       current_lines = vim.fn.readfile(path)
     end
     left_label = base == ":" and "index" or base
     right_label = "working tree"
+    if session and session.kind == "gerrit" then
+      if session.gerrit_revision_side == "left" then
+        local ps = session.change and session.change.target_ps or "?"
+        left_label = string.format("PS%s %s", ps, git_short_rev(root, base))
+      else
+        left_label = "base " .. git_short_rev(root, base)
+      end
+    end
   end
 
   local filetype = vim.bo.filetype
@@ -539,8 +686,8 @@ function M.side_by_side(opts)
     right_modifiable
   )
 
-  configure_diff_pane(left_win)
-  configure_diff_pane(right_win)
+  configure_diff_pane(left_win, "left")
+  configure_diff_pane(right_win, "right")
 
   for _, win in ipairs({ left_win, right_win }) do
     vim.api.nvim_win_call(win, function()
@@ -548,8 +695,15 @@ function M.side_by_side(opts)
     end)
   end
 
-  apply_diff_highlights(left_win, "left")
-  apply_diff_highlights(right_win, "right")
+  if session and session.kind == "gerrit" and session.comments then
+    local gerrit = require("config.gerrit_comments")
+    local file_comments = session.comments[rel]
+    local rev_side = session.gerrit_revision_side or "right"
+    local left_gside = rev_side == "left" and "REVISION" or "PARENT"
+    local right_gside = rev_side == "right" and "REVISION" or "PARENT"
+    gerrit.attach(left_buf, left_win, file_comments, left_gside)
+    gerrit.attach(right_buf, right_win, file_comments, right_gside)
+  end
 
   vim.api.nvim_set_current_win(right_win)
   pane_maps(left_win, right_win, left_buf, right_buf)
@@ -557,6 +711,73 @@ function M.side_by_side(opts)
     file_nav_maps(session, { left_win, right_win }, { left_buf, right_buf })
   end
   close_maps({ left_buf, right_buf }, { left_win, right_win })
+
+  -- Remember this view so it can be hidden/restored (see M.toggle_diff_view).
+  local reopen_opts = vim.tbl_extend("force", {}, opts)
+  reopen_opts.right_lines = nil
+  reopen_opts.path = path
+  reopen_opts.base = base
+  M._view = {
+    left_win = left_win,
+    right_win = right_win,
+    left_buf = left_buf,
+    right_buf = right_buf,
+    right_modifiable = right_modifiable,
+    reopen_opts = reopen_opts,
+  }
+end
+
+---Hide the current side-by-side view, or restore the last hidden one.
+---State (file, comments, cursor, and any right-pane edits) is preserved.
+function M.toggle_diff_view()
+  local v = M._view
+  if v and (vim.api.nvim_win_is_valid(v.left_win) or vim.api.nvim_win_is_valid(v.right_win)) then
+    local cur = vim.api.nvim_get_current_win()
+    local focus_win = cur
+    if not (cur == v.left_win or cur == v.right_win) then
+      focus_win = vim.api.nvim_win_is_valid(v.right_win) and v.right_win or v.left_win
+    end
+
+    local saved = { side = "right" }
+    if vim.api.nvim_win_is_valid(focus_win) then
+      saved.cursor = vim.api.nvim_win_get_cursor(focus_win)
+      saved.side = (focus_win == v.left_win) and "left" or "right"
+    end
+
+    local right_lines
+    if v.right_modifiable and vim.api.nvim_buf_is_valid(v.right_buf) then
+      right_lines = vim.api.nvim_buf_get_lines(v.right_buf, 0, -1, false)
+    end
+
+    close_diff_windows({ v.left_win, v.right_win })
+    M._hidden = { reopen_opts = v.reopen_opts, right_lines = right_lines, saved = saved }
+    M._view = nil
+    return
+  end
+
+  if M._hidden then
+    local h = M._hidden
+    M._hidden = nil
+    local opts = vim.tbl_extend("force", {}, h.reopen_opts or {})
+    opts.right_lines = h.right_lines
+    M.side_by_side(opts)
+
+    local nv = M._view
+    if nv and h.saved then
+      local win = (h.saved.side == "left") and nv.left_win or nv.right_win
+      local buf = (h.saved.side == "left") and nv.left_buf or nv.right_buf
+      if win and vim.api.nvim_win_is_valid(win) then
+        if h.saved.cursor and vim.api.nvim_buf_is_valid(buf) then
+          local row = math.min(h.saved.cursor[1], vim.api.nvim_buf_line_count(buf))
+          pcall(vim.api.nvim_win_set_cursor, win, { row, h.saved.cursor[2] })
+        end
+        vim.api.nvim_set_current_win(win)
+      end
+    end
+    return
+  end
+
+  vim.notify("No side-by-side view to toggle", vim.log.levels.INFO)
 end
 
 ---Browse files changed against a base revision with a floating Telescope diff preview.
